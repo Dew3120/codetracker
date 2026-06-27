@@ -1,0 +1,12 @@
+spring.application.name=codetracker
+
+spring.datasource.url=jdbc:mysql://localhost:3306/codetracker_db
+spring.datasource.username=YOUR_DB_USERNAME
+spring.datasource.password=YOUR_DB_PASSWORD
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQLDialect
+server.port=8080
+
+jwt.secret=YOUR_JWT_SECRET_KEY_MIN_64_CHARACTERS
+jwt.expiration=86400000
