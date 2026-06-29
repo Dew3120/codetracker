@@ -63,16 +63,21 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
+            // Find user by email
+            User user = userService.findByEmail(request.getEmail())
+                    .orElseThrow(() -> new BadCredentialsException("Invalid email"));
+
+            // Authenticate using username and password
             authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+                    new UsernamePasswordAuthenticationToken(user.getUsername(), request.getPassword())
             );
 
-            // authentication successful
-            String token = jwtUtils.generateToken(request.getUsername());
+            // Generate token
+            String token = jwtUtils.generateToken(user.getUsername());
 
             return ResponseEntity.ok(new JwtResponse(token));
         } catch (BadCredentialsException ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: Invalid username or password");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: Invalid email or password");
         }
     }
 
@@ -91,11 +96,11 @@ public class AuthController {
     }
 
     public static class LoginRequest {
-        private String username;
+        private String email;      // Changed from username to email
         private String password;
 
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
+        public String getEmail() { return email; }
+        public void setEmail(String email) { this.email = email; }
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
     }
@@ -108,6 +113,3 @@ public class AuthController {
         public void setToken(String token) { this.token = token; }
     }
 }
-
-
-

@@ -1,16 +1,21 @@
 package com.codetracker.codetracker.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -29,7 +34,40 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "first_name")
+    private String firstName;
+
+    @Column(name = "last_name")
+    private String lastName;
+
+    @Column(columnDefinition = "TEXT")
+    private String bio;
+
+    @Column(name = "avatar_url")
+    private String avatarUrl;
+
+    @Column(length = 50)
+    private String timezone;
+
+    @Column(name = "daily_goal_minutes")
+    private Integer dailyGoalMinutes;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
-}
 
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<CodingSession> sessions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<DailyGoal> goals = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<UserAchievement> userAchievements = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    @JsonIgnore
+    private List<Problem> problems = new ArrayList<>();
+}
