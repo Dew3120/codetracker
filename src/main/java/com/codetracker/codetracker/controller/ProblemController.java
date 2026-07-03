@@ -3,6 +3,7 @@ package com.codetracker.codetracker.controller;
 import com.codetracker.codetracker.dto.request.ProblemRequest;
 import com.codetracker.codetracker.model.Problem;
 import com.codetracker.codetracker.model.User;
+import com.codetracker.codetracker.service.AchievementService;
 import com.codetracker.codetracker.service.ProblemService;
 import com.codetracker.codetracker.service.UserService;
 import org.springframework.http.HttpStatus;
@@ -31,10 +32,13 @@ public class ProblemController {
 
     private final ProblemService problemService;
     private final UserService userService;
+    private final AchievementService achievementService;
 
-    public ProblemController(ProblemService problemService, UserService userService) {
+    public ProblemController(ProblemService problemService, UserService userService,
+                            AchievementService achievementService) {
         this.problemService = problemService;
         this.userService = userService;
+        this.achievementService = achievementService;
     }
 
     @GetMapping
@@ -69,6 +73,7 @@ public class ProblemController {
                 .user(user)
                 .build();
         Problem saved = problemService.save(problem);
+        achievementService.checkAndAwardAchievements(user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
@@ -97,6 +102,7 @@ public class ProblemController {
             }
         }
         Problem updated = problemService.save(problem);
+        achievementService.checkAndAwardAchievements(user.getId());
         return ResponseEntity.ok(updated);
     }
 

@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -45,13 +47,14 @@ public class AchievementService {
                 .filter(problem -> Boolean.TRUE.equals(problem.getIsSolved()))
                 .count();
 
-        Set<Long> earnedIds = userAchievementRepository.findEarnedAchievementIdsByUserId(userId).stream().collect(Collectors.toSet());
-        List<Achievement> achievements = achievementRepository.findAll();
-        for (Achievement achievement : achievements) {
+        int currentStreak = calculateCurrentStreak(userId);
+
+        Set<Long> earnedIds = new HashSet<>(userAchievementRepository.findEarnedAchievementIdsByUserId(userId));
+        for (Achievement achievement : achievementRepository.findAll()) {
             if (earnedIds.contains(achievement.getId())) {
                 continue;
             }
-            if (meetsCriteria(achievement, sessionCount, solvedProblems, totalMinutes)) {
+            if (meetsCriteria(achievement, sessionCount, solvedProblems, totalMinutes, currentStreak)) {
                 userAchievementRepository.save(
                         com.codetracker.codetracker.model.UserAchievement.builder()
                                 .user(user)
@@ -59,6 +62,17 @@ public class AchievementService {
                                 .build());
             }
         }
+    }
+
+    private int calculateCurrentStreak(Long userId) {
+        Set<LocalDate> dates = new HashSet<>(codingSessionRepository.findDistinctSessionDatesByUserId(userId));
+        int streak = 0;
+        LocalDate cursor = LocalDate.now();
+        while (dates.contains(cursor)) {
+            streak++;
+            cursor = cursor.minusDays(1);
+        }
+        return streak;
     }
 
     public List<AchievementResponse> getAchievementsWithStatus(Long userId) {
@@ -89,18 +103,21 @@ public class AchievementService {
                 .collect(Collectors.toList());
     }
 
-    private boolean meetsCriteria(Achievement achievement, int sessionCount, int solvedProblems, int totalMinutes) {
+    private boolean meetsCriteria(Achievement achievement, int sessionCount, int solvedProblems,
+                                  int totalMinutes, int currentStreak) {
         if (achievement.getCriteriaType() == null || achievement.getCriteriaValue() == null) {
             return false;
         }
-
+        int value = achievement.getCriteriaValue();
         switch (achievement.getCriteriaType()) {
-            case "session_count":
-                return sessionCount >= achievement.getCriteriaValue();
-            case "solved_problems":
-                return solvedProblems >= achievement.getCriteriaValue();
-            case "total_minutes":
-                return totalMinutes >= achievement.getCriteriaValue();
+            case "TOTAL_SESSIONS":
+                return sessionCount >= value;
+            case "PROBLEMS_SOLVED":
+                return solvedProblems >= value;
+            case "TOTAL_HOURS":
+                return totalMinutes >= value * 60;
+            case "STREAK_DAYS":
+                return currentStreak >= value;
             default:
                 return false;
         }

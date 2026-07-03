@@ -36,6 +36,7 @@ public class CodingSessionService {
     private final ProgrammingLanguageRepository programmingLanguageRepository;
     private final UserRepository userRepository;
     private final DailyGoalService dailyGoalService;
+    private final AchievementService achievementService;
 
     public SessionResponse createSession(Long userId, SessionRequest request) {
         User user = userRepository.findById(userId)
@@ -72,6 +73,7 @@ public class CodingSessionService {
 
         CodingSession saved = codingSessionRepository.save(session);
         dailyGoalService.updateGoalProgress(userId, saved.getSessionDate(), duration);
+        achievementService.checkAndAwardAchievements(userId);
         return SessionResponse.fromEntity(saved);
     }
 
@@ -171,6 +173,7 @@ public class CodingSessionService {
         if (durationDelta > 0) {
             dailyGoalService.updateGoalProgress(userId, saved.getSessionDate(), durationDelta);
         }
+        achievementService.checkAndAwardAchievements(userId);
 
         return SessionResponse.fromEntity(saved);
     }
