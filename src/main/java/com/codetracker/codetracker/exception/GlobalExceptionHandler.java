@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -49,6 +50,18 @@ public class GlobalExceptionHandler {
                         .timestamp(LocalDateTime.now())
                         .build(),
                 HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
+        HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+        return new ResponseEntity<>(
+                ErrorResponse.builder()
+                        .status(status.value())
+                        .message(ex.getReason() != null ? ex.getReason() : status.getReasonPhrase())
+                        .timestamp(LocalDateTime.now())
+                        .build(),
+                status);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
