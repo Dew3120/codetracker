@@ -3,6 +3,7 @@ package com.codetracker.codetracker.dto.response;
 import com.codetracker.codetracker.model.DailyGoal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -37,3 +38,4 @@ public class GoalResponse {
                 .build();
     }
 }
+

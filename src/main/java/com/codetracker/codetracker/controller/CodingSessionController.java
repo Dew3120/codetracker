@@ -24,6 +24,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/sessions")
@@ -45,9 +46,21 @@ public class CodingSessionController {
     }
 
     @GetMapping
-    public ResponseEntity<List<SessionResponse>> getUserSessions() {
+    public ResponseEntity<Map<String, Object>> getUserSessions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) Long topicId,
+            @RequestParam(required = false) Long languageId,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
         Long userId = getCurrentUserId();
-        return ResponseEntity.ok(codingSessionService.getUserSessions(userId));
+        try {
+            LocalDate start = (startDate == null || startDate.isBlank()) ? null : LocalDate.parse(startDate);
+            LocalDate end = (endDate == null || endDate.isBlank()) ? null : LocalDate.parse(endDate);
+            return ResponseEntity.ok(codingSessionService.getUserSessionsPaged(userId, page, size, topicId, languageId, start, end));
+        } catch (DateTimeParseException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid date format");
+        }
     }
 
     @GetMapping("/today")

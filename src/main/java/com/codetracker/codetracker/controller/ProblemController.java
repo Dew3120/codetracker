@@ -1,18 +1,28 @@
 package com.codetracker.codetracker.controller;
 
+import com.codetracker.codetracker.dto.request.ProblemRequest;
 import com.codetracker.codetracker.model.Problem;
 import com.codetracker.codetracker.model.User;
-import com.codetracker.codetracker.repository.UserRepository;
 import com.codetracker.codetracker.service.ProblemService;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.codetracker.codetracker.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -20,154 +30,103 @@ import java.util.Optional;
 public class ProblemController {
 
     private final ProblemService problemService;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
-    @Autowired
-    public ProblemController(ProblemService problemService, UserRepository userRepository) {
+    public ProblemController(ProblemService problemService, UserService userService) {
         this.problemService = problemService;
-        this.userRepository = userRepository;
-    }
-
-    /**
-     * Helper method to get the currently authenticated user
-     */
-    private User getCurrentUser() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String username = authentication.getName();
-        return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Current user not found"));
+        this.userService = userService;
     }
 
     @GetMapping
-    public ResponseEntity<List<Problem>> getAllProblems() {
-        User currentUser = getCurrentUser();
-        List<Problem> problems = problemService.getAllProblemsByUserId(currentUser.getId());
-        return ResponseEntity.ok(problems);
+    public ResponseEntity<Map<String, Object>> getAllProblems(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String platform,
+            @RequestParam(required = false) String difficulty,
+            @RequestParam(required = false) Boolean isSolved) {
+        User user = getCurrentUser();
+        return ResponseEntity.ok(problemService.getProblemsPaged(user.getId(), page, size, platform, difficulty, isSolved));
     }
 
     @PostMapping
-    public ResponseEntity<Problem> createProblem(@RequestBody CreateProblemRequest request) {
-        User currentUser = getCurrentUser();
-
+    public ResponseEntity<Problem> createProblem(@RequestBody ProblemRequest request) {
+        User user = getCurrentUser();
+        boolean solved = Boolean.TRUE.equals(request.getIsSolved());
+        LocalDate solvedDate = request.getSolvedDate();
+        if (solved && solvedDate == null) {
+            solvedDate = LocalDate.now();
+        }
         Problem problem = Problem.builder()
-                .title(request.getTitle())
-                .difficulty(request.getDifficulty())
-                .topic(request.getTopic())
-                .status(request.getStatus())
+                .platform(request.getPlatform())
+                .problemName(request.getProblemName())
+                .problemUrl(request.getProblemUrl())
+                .difficulty(request.getDifficulty() == null ? null : request.getDifficulty().toUpperCase())
+                .isSolved(solved)
+                .timeTakenMinutes(request.getTimeTakenMinutes())
                 .notes(request.getNotes())
-                .user(currentUser)
+                .solvedDate(solvedDate)
+                .createdAt(LocalDateTime.now())
+                .user(user)
                 .build();
-
-        Problem savedProblem = problemService.save(problem);
-        return ResponseEntity.status(HttpStatus.CREATED).body(savedProblem);
+        Problem saved = problemService.save(problem);
+        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateProblem(@PathVariable Long id, @RequestBody UpdateProblemRequest request) {
-        User currentUser = getCurrentUser();
-
+    public ResponseEntity<?> updateProblem(@PathVariable Long id, @RequestBody ProblemRequest request) {
+        User user = getCurrentUser();
         Optional<Problem> problemOpt = problemService.findById(id);
         if (problemOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Problem not found");
         }
-
         Problem problem = problemOpt.get();
-
-        // Verify that the problem belongs to the current user
-        if (!problem.getUser().getId().equals(currentUser.getId())) {
+        if (!problem.getUser().getId().equals(user.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You cannot update this problem");
         }
-
-        // Update fields if provided
-        if (request.getTitle() != null) {
-            problem.setTitle(request.getTitle());
-        }
-        if (request.getDifficulty() != null) {
-            problem.setDifficulty(request.getDifficulty());
-        }
-        if (request.getTopic() != null) {
-            problem.setTopic(request.getTopic());
-        }
-        if (request.getStatus() != null) {
-            problem.setStatus(request.getStatus());
-            // If status is "Solved", set solvedAt to current time
-            if ("Solved".equalsIgnoreCase(request.getStatus()) && problem.getSolvedAt() == null) {
-                problem.setSolvedAt(LocalDateTime.now());
+        if (request.getPlatform() != null) problem.setPlatform(request.getPlatform());
+        if (request.getProblemName() != null) problem.setProblemName(request.getProblemName());
+        if (request.getProblemUrl() != null) problem.setProblemUrl(request.getProblemUrl());
+        if (request.getDifficulty() != null) problem.setDifficulty(request.getDifficulty().toUpperCase());
+        if (request.getTimeTakenMinutes() != null) problem.setTimeTakenMinutes(request.getTimeTakenMinutes());
+        if (request.getNotes() != null) problem.setNotes(request.getNotes());
+        if (request.getSolvedDate() != null) problem.setSolvedDate(request.getSolvedDate());
+        if (request.getIsSolved() != null) {
+            problem.setIsSolved(request.getIsSolved());
+            if (Boolean.TRUE.equals(request.getIsSolved()) && problem.getSolvedDate() == null) {
+                problem.setSolvedDate(LocalDate.now());
             }
         }
-        if (request.getNotes() != null) {
-            problem.setNotes(request.getNotes());
-        }
-
-        Problem updatedProblem = problemService.save(problem);
-        return ResponseEntity.ok(updatedProblem);
+        Problem updated = problemService.save(problem);
+        return ResponseEntity.ok(updated);
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProblem(@PathVariable Long id) {
-        User currentUser = getCurrentUser();
-
+        User user = getCurrentUser();
         Optional<Problem> problemOpt = problemService.findById(id);
         if (problemOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Problem not found");
         }
-
         Problem problem = problemOpt.get();
-
-        // Verify that the problem belongs to the current user
-        if (!problem.getUser().getId().equals(currentUser.getId())) {
+        if (!problem.getUser().getId().equals(user.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You cannot delete this problem");
         }
-
         problemService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Request DTOs
-    public static class CreateProblemRequest {
-        private String title;
-        private String difficulty;
-        private String topic;
-        private String status;
-        private String notes;
-
-        public String getTitle() { return title; }
-        public void setTitle(String title) { this.title = title; }
-
-        public String getDifficulty() { return difficulty; }
-        public void setDifficulty(String difficulty) { this.difficulty = difficulty; }
-
-        public String getTopic() { return topic; }
-        public void setTopic(String topic) { this.topic = topic; }
-
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-
-        public String getNotes() { return notes; }
-        public void setNotes(String notes) { this.notes = notes; }
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getStats() {
+        User user = getCurrentUser();
+        return ResponseEntity.ok(problemService.getStats(user.getId()));
     }
 
-    public static class UpdateProblemRequest {
-        private String title;
-        private String difficulty;
-        private String topic;
-        private String status;
-        private String notes;
-
-        public String getTitle() { return title; }
-        public void setTitle(String title) { this.title = title; }
-
-        public String getDifficulty() { return difficulty; }
-        public void setDifficulty(String difficulty) { this.difficulty = difficulty; }
-
-        public String getTopic() { return topic; }
-        public void setTopic(String topic) { this.topic = topic; }
-
-        public String getStatus() { return status; }
-        public void setStatus(String status) { this.status = status; }
-
-        public String getNotes() { return notes; }
-        public void setNotes(String notes) { this.notes = notes; }
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || authentication.getName() == null) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated");
+        }
+        return userService.findByUsername(authentication.getName())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
     }
 }
-

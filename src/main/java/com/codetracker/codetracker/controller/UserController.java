@@ -2,96 +2,139 @@ package com.codetracker.codetracker.controller;
 
 import com.codetracker.codetracker.dto.request.ProfileUpdateRequest;
 import com.codetracker.codetracker.dto.response.UserResponse;
-import com.codetracker.codetracker.exception.ResourceNotFoundException;
 import com.codetracker.codetracker.model.User;
 import com.codetracker.codetracker.repository.UserRepository;
 import com.codetracker.codetracker.service.UserService;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.security.Principal;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/users")
-@RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
+    @Autowired
+    private UserRepository userRepository;
 
+    @Autowired
+    private UserService userService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String username = authentication.getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Current user not found"));
+    }
+
+    // ✅ FIXED: GET /api/users/me - Get current user profile
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> getCurrentUser(Principal principal) {
-        User user = userService.findByUsername(principal.getName())
-                .orElseThrow(() -> new ResourceNotFoundException("Current user not found"));
-        return ResponseEntity.ok(UserResponse.fromEntity(user));
+    public ResponseEntity<?> getMe() {
+        try {
+            User user = getCurrentUser();
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("User not authenticated");
+            }
+            return ResponseEntity.ok(UserResponse.fromEntity(user));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("User not authenticated");
+        }
     }
 
-    @PutMapping("/me")
-    public ResponseEntity<UserResponse> updateProfile(@Valid @RequestBody ProfileUpdateRequest request,
-                                                      Principal principal) {
-        User user = userService.findByUsername(principal.getName())
-                .orElseThrow(() -> new ResourceNotFoundException("Current user not found"));
+    // ✅ PUT /api/users/profile - Update profile
+    @PutMapping("/profile")
+    public ResponseEntity<?> updateProfile(@Valid @RequestBody ProfileUpdateRequest request) {
+        try {
+            User user = getCurrentUser();
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("User not authenticated");
+            }
 
-        if (request.getFirstName() != null) {
-            user.setFirstName(request.getFirstName());
-        }
-        if (request.getLastName() != null) {
-            user.setLastName(request.getLastName());
-        }
-        if (request.getBio() != null) {
-            user.setBio(request.getBio());
-        }
-        if (request.getTimezone() != null) {
-            user.setTimezone(request.getTimezone());
-        }
-        if (request.getDailyGoalMinutes() != null) {
-            user.setDailyGoalMinutes(request.getDailyGoalMinutes());
-        }
+            if (request.getFirstName() != null) {
+                user.setFirstName(request.getFirstName());
+            }
+            if (request.getLastName() != null) {
+                user.setLastName(request.getLastName());
+            }
+            if (request.getBio() != null) {
+                user.setBio(request.getBio());
+            }
+            if (request.getTimezone() != null) {
+                user.setTimezone(request.getTimezone());
+            }
+            if (request.getDailyGoalMinutes() != null) {
+                user.setDailyGoalMinutes(request.getDailyGoalMinutes());
+            }
 
-        userRepository.save(user);
-        return ResponseEntity.ok(UserResponse.fromEntity(user));
+            User savedUser = userRepository.save(user);
+            return ResponseEntity.ok(UserResponse.fromEntity(savedUser));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to update profile: " + e.getMessage());
+        }
     }
 
-    @PutMapping("/me/password")
-    public ResponseEntity<UserResponse> changePassword(@Valid @RequestBody PasswordChangeRequest request,
-                                                       Principal principal) {
-        User user = userService.findByUsername(principal.getName())
-                .orElseThrow(() -> new ResourceNotFoundException("Current user not found"));
+    // ✅ PUT /api/users/password - Change password
+    @PutMapping("/password")
+    public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
+        try {
+            User user = getCurrentUser();
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("User not authenticated");
+            }
 
-        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            return ResponseEntity.badRequest().build();
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Current password is incorrect");
+            }
+
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            return ResponseEntity.ok("Password updated successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to change password: " + e.getMessage());
         }
-
-        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
-        userRepository.save(user);
-        return ResponseEntity.ok(UserResponse.fromEntity(user));
     }
 
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    private static class PasswordChangeRequest {
+    // ✅ DELETE /api/users/me - Delete account
+    @DeleteMapping("/me")
+    public ResponseEntity<?> deleteAccount() {
+        try {
+            User user = getCurrentUser();
+            if (user == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body("User not authenticated");
+            }
 
-        @NotBlank
-        private String oldPassword;
+            userRepository.delete(user);
+            return ResponseEntity.ok("Account deleted successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to delete account: " + e.getMessage());
+        }
+    }
 
-        @NotBlank
+    // Inner class for password change request
+    public static class ChangePasswordRequest {
+        private String currentPassword;
         private String newPassword;
+
+        public String getCurrentPassword() { return currentPassword; }
+        public void setCurrentPassword(String currentPassword) { this.currentPassword = currentPassword; }
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
     }
 }

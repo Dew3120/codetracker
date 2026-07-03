@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.security.Principal;
+import java.time.YearMonth;
 
 @RestController
 @RequestMapping("/api/reports")
@@ -32,11 +33,11 @@ public class ReportController {
 
     @GetMapping("/monthly")
     public MonthlyReportResponse getMonthlyReport(Principal principal,
-                                                  @RequestParam int year,
-                                                  @RequestParam int month) {
+                                                  @RequestParam String month) {
         User user = userService.findByUsername(principal.getName())
                 .orElseThrow(() -> new IllegalStateException("User not found"));
-        return reportService.getMonthlyReport(user.getId(), year, month);
+        YearMonth ym = YearMonth.parse(month);
+        return reportService.getMonthlyReport(user.getId(), ym.getYear(), ym.getMonthValue());
     }
 
     @GetMapping("/languages")

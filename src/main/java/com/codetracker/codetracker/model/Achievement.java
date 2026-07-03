@@ -1,12 +1,6 @@
 package com.codetracker.codetracker.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,9 +8,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
-@Table(name = "achievements", uniqueConstraints = {
-        @UniqueConstraint(columnNames = "name")
-})
+@Table(name = "achievements")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -31,14 +23,15 @@ public class Achievement {
     @Column(nullable = false, unique = true, length = 100)
     private String name;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(length = 50)
+    @Column(nullable = false, length = 50)
     private String icon;
 
-    @Column(length = 50)
+    @Column(name = "criteria_type", nullable = false, length = 50)
     private String criteriaType;
 
+    @Column(name = "criteria_value", nullable = false)
     private Integer criteriaValue;
 }

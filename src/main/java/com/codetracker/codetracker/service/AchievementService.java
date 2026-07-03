@@ -41,11 +41,9 @@ public class AchievementService {
                 .mapToInt(session -> session.getDurationMinutes() != null ? session.getDurationMinutes() : 0)
                 .sum();
 
-        List<String> solvedStatuses = problemRepository.findAllByUserId(userId).stream()
-                .filter(problem -> "Solved".equalsIgnoreCase(problem.getStatus()))
-                .map(problem -> problem.getStatus())
-                .collect(Collectors.toList());
-        int solvedProblems = solvedStatuses.size();
+        int solvedProblems = (int) problemRepository.findAllByUserId(userId).stream()
+                .filter(problem -> Boolean.TRUE.equals(problem.getIsSolved()))
+                .count();
 
         Set<Long> earnedIds = userAchievementRepository.findEarnedAchievementIdsByUserId(userId).stream().collect(Collectors.toSet());
         List<Achievement> achievements = achievementRepository.findAll();

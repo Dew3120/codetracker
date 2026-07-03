@@ -2,6 +2,7 @@ package com.codetracker.codetracker.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -34,3 +35,4 @@ public class WeeklyReportResponse {
         private int minutes;
     }
 }
+

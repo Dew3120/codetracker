@@ -1,6 +1,10 @@
 package com.codetracker.codetracker.controller;
 
 import com.codetracker.codetracker.config.JwtUtils;
+import com.codetracker.codetracker.dto.request.LoginRequest;
+import com.codetracker.codetracker.dto.request.RegisterRequest;
+import com.codetracker.codetracker.dto.response.AuthResponse;
+import com.codetracker.codetracker.dto.response.UserResponse;
 import com.codetracker.codetracker.model.User;
 import com.codetracker.codetracker.service.UserService;
 import jakarta.validation.Valid;
@@ -10,7 +14,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -41,75 +48,70 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
         if (userService.existsByUsername(request.getUsername())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: Username is already taken!");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Error: Username is already taken!");
         }
-
         if (userService.existsByEmail(request.getEmail())) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Error: Email is already in use!");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Error: Email is already in use!");
         }
 
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
+                .firstName(request.getFirstName())
+                .lastName(request.getLastName())
+                .timezone("Asia/Colombo")
+                .dailyGoalMinutes(120)
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        userService.save(user);
+        User savedUser = userService.save(user);
+        String token = jwtUtils.generateToken(savedUser.getUsername());
 
-        return ResponseEntity.ok("User registered successfully!");
+        AuthResponse response = AuthResponse.builder()
+                .token(token)
+                .user(UserResponse.fromEntity(savedUser))
+                .build();
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
         try {
-            // Find user by email
             User user = userService.findByEmail(request.getEmail())
                     .orElseThrow(() -> new BadCredentialsException("Invalid email"));
 
-            // Authenticate using username and password
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(user.getUsername(), request.getPassword())
             );
 
-            // Generate token
             String token = jwtUtils.generateToken(user.getUsername());
 
-            return ResponseEntity.ok(new JwtResponse(token));
+            AuthResponse response = AuthResponse.builder()
+                    .token(token)
+                    .user(UserResponse.fromEntity(user))
+                    .build();
+
+            return ResponseEntity.ok(response);
         } catch (BadCredentialsException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: Invalid email or password");
         }
     }
 
-    // Request / Response DTOs
-    public static class RegisterRequest {
-        private String username;
-        private String email;
-        private String password;
+    @GetMapping("/me")
+    public ResponseEntity<?> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: Not authenticated");
+        }
 
-        public String getUsername() { return username; }
-        public void setUsername(String username) { this.username = username; }
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
-    }
+        String username = authentication.getName();
+        User user = userService.findByUsername(username).orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Error: User not found");
+        }
 
-    public static class LoginRequest {
-        private String email;      // Changed from username to email
-        private String password;
-
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
-    }
-
-    public static class JwtResponse {
-        private String token;
-
-        public JwtResponse(String token) { this.token = token; }
-        public String getToken() { return token; }
-        public void setToken(String token) { this.token = token; }
+        return ResponseEntity.ok(UserResponse.fromEntity(user));
     }
 }

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -20,26 +21,33 @@ public class Problem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String title;
+    @Column(nullable = false, length = 100)
+    private String platform;
 
-    /** Difficulty values: "Easy", "Medium", "Hard" (stored as String) */
+    @Column(name = "problem_name", nullable = false)
+    private String problemName;
+
+    @Column(name = "problem_url")
+    private String problemUrl;
+
     private String difficulty;
 
-    /** Topic such as "Arrays", "Trees", etc. */
-    private String topic;
+    @Column(name = "is_solved", nullable = false)
+    private Boolean isSolved;
 
-    /** Status values: "Solved", "Unsolved" */
-    private String status;
+    @Column(name = "time_taken_minutes")
+    private Integer timeTakenMinutes;
 
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "solved_at")
-    private LocalDateTime solvedAt;
+    @Column(name = "solved_date")
+    private LocalDate solvedDate;
+
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
     private User user;
 }
-

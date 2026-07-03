@@ -19,8 +19,11 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -76,6 +79,36 @@ public class CodingSessionService {
         return codingSessionRepository.findByUserIdWithDetails(userId).stream()
                 .map(SessionResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    public Map<String, Object> getUserSessionsPaged(Long userId, int page, int size,
+                                                    Long topicId, Long languageId,
+                                                    LocalDate startDate, LocalDate endDate) {
+        List<CodingSession> filtered = codingSessionRepository.findByUserIdWithDetails(userId).stream()
+                .filter(cs -> topicId == null || (cs.getTopic() != null && topicId.equals(cs.getTopic().getId())))
+                .filter(cs -> languageId == null || (cs.getLanguage() != null && languageId.equals(cs.getLanguage().getId())))
+                .filter(cs -> startDate == null || !cs.getSessionDate().isBefore(startDate))
+                .filter(cs -> endDate == null || !cs.getSessionDate().isAfter(endDate))
+                .collect(Collectors.toList());
+
+        int total = filtered.size();
+        int safeSize = size <= 0 ? 20 : Math.min(size, 100);
+        int safePage = Math.max(page, 0);
+        int totalPages = (int) Math.ceil((double) total / safeSize);
+        int from = Math.min(safePage * safeSize, total);
+        int to = Math.min(from + safeSize, total);
+
+        List<SessionResponse> content = filtered.subList(from, to).stream()
+                .map(SessionResponse::fromEntity)
+                .collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", content);
+        response.put("totalElements", total);
+        response.put("totalPages", totalPages);
+        response.put("currentPage", safePage);
+        response.put("size", safeSize);
+        return response;
     }
 
     public List<SessionResponse> getTodaySessions(Long userId) {
@@ -151,7 +184,7 @@ public class CodingSessionService {
         codingSessionRepository.delete(existing);
     }
 
-    private Integer calculateDuration(java.time.LocalTime startTime, java.time.LocalTime endTime) {
+    private Integer calculateDuration(LocalTime startTime, LocalTime endTime) {
         if (startTime == null || endTime == null) {
             return null;
         }
