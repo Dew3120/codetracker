@@ -75,6 +75,7 @@ public class AchievementService {
         return streak;
     }
 
+    @org.springframework.transaction.annotation.Transactional(readOnly = true)
     public List<AchievementResponse> getAchievementsWithStatus(Long userId) {
         userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
