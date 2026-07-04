@@ -30,6 +30,7 @@ public class Problem {
     @Column(name = "problem_url")
     private String problemUrl;
 
+    @Column(nullable = false, columnDefinition = "ENUM('EASY','MEDIUM','HARD')")
     private String difficulty;
 
     @Column(name = "is_solved", nullable = false)

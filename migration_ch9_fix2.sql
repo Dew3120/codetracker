@@ -1,0 +1,4 @@
+﻿ALTER TABLE problems_solved MODIFY COLUMN difficulty ENUM('EASY','MEDIUM','HARD') NOT NULL;
+ALTER TABLE achievements MODIFY COLUMN criteria_type VARCHAR(50) NOT NULL;
+ALTER TABLE achievements MODIFY COLUMN criteria_value INT NOT NULL;
+ALTER TABLE achievements MODIFY COLUMN icon VARCHAR(50) NOT NULL;
