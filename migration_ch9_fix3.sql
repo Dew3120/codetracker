@@ -1,0 +1,3 @@
+﻿ALTER TABLE problems_solved MODIFY COLUMN problem_name VARCHAR(200) NOT NULL;
+ALTER TABLE problems_solved MODIFY COLUMN problem_url VARCHAR(500) DEFAULT NULL;
+ALTER TABLE problems_solved MODIFY COLUMN is_solved BIT(1) NOT NULL DEFAULT b'0';

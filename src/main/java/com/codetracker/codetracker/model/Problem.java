@@ -24,17 +24,18 @@ public class Problem {
     @Column(nullable = false, length = 50)
     private String platform;
 
-    @Column(name = "problem_name", nullable = false)
+    @Column(name = "problem_name", nullable = false, length = 200)
     private String problemName;
 
-    @Column(name = "problem_url")
+    @Column(name = "problem_url", length = 500)
     private String problemUrl;
 
     @Column(nullable = false, columnDefinition = "ENUM('EASY','MEDIUM','HARD')")
     private String difficulty;
 
     @Column(name = "is_solved", nullable = false)
-    private Boolean isSolved;
+    @Builder.Default
+    private Boolean isSolved = false;
 
     @Column(name = "time_taken_minutes")
     private Integer timeTakenMinutes;
