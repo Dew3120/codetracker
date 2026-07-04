@@ -26,19 +26,19 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 50)
     private String username;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)   // âœ… Maps to password_hash column
+    @Column(name = "password_hash", nullable = false)   // Ã¢Å“â€¦ Maps to password_hash column
     private String password;
 
-    @Column(name = "first_name")
+    @Column(name = "first_name", length = 50)
     private String firstName;
 
-    @Column(name = "last_name")
+    @Column(name = "last_name", length = 50)
     private String lastName;
 
     @Column(columnDefinition = "TEXT")
@@ -51,11 +51,20 @@ public class User {
     private String timezone = "Asia/Colombo";
 
     @Column(name = "daily_goal_minutes")
-    private Integer dailyGoalMinutes;
+    @Builder.Default
+    private Integer dailyGoalMinutes = 120;
 
     @Column(name = "created_at", updatable = false)
     @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    @org.hibernate.annotations.UpdateTimestamp
+    private LocalDateTime updatedAt;
+
+    @Column(name = "is_active", nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
