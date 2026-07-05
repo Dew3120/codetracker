@@ -1,13 +1,23 @@
 package com.codetracker.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "problems_solved")
@@ -33,8 +43,8 @@ public class ProblemSolved {
     @Column(nullable = false, columnDefinition = "ENUM('EASY','MEDIUM','HARD')")
     private String difficulty;
 
-    @Column(name = "is_solved", nullable = false)
     @Builder.Default
+    @Column(name = "is_solved", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isSolved = false;
 
     @Column(name = "time_taken_minutes")
@@ -43,17 +53,20 @@ public class ProblemSolved {
     @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "solved_date", nullable = false)
+    @Column(name = "solved_date", nullable = false, columnDefinition = "DATE")
     private LocalDate solvedDate;
 
-    @Column(name = "created_at", updatable = false)
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "session_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private CodingSession session;
 }

@@ -19,10 +19,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "user_achievements", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"user_id", "achievement_id"})
+        @UniqueConstraint(name = "unique_user_achievement", columnNames = {"user_id", "achievement_id"})
 })
 @Getter
 @Setter
@@ -39,13 +41,15 @@ public class UserAchievement {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "achievement_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Achievement achievement;
 
     @CreationTimestamp
-    @Column(name = "earned_at", updatable = false)
+    @Column(name = "earned_at", updatable = false, columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime earnedAt;
 }

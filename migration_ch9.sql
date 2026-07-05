@@ -1,65 +1,113 @@
-﻿-- 1. Remove zombie table (0 rows, safe)
-DROP TABLE IF EXISTS problems_solved;
+-- CodeTracker Chapter 9 database alignment migration.
+-- Run from the project root with:
+-- mysql -uroot -p codetracker_db < migration_ch9.sql
 
--- 2. Rename problems -> problems_solved to match doc table name
-RENAME TABLE problems TO problems_solved;
-
--- 3. Fix problems_solved structure (0 rows, safe to tighten)
-ALTER TABLE problems_solved
-  ADD COLUMN session_id BIGINT DEFAULT NULL AFTER problem_url,
-  MODIFY COLUMN platform VARCHAR(50) NOT NULL,
-  MODIFY COLUMN difficulty ENUM('EASY','MEDIUM','HARD') NOT NULL,
-  MODIFY COLUMN is_solved BIT(1) NOT NULL DEFAULT b'0',
-  MODIFY COLUMN solved_date DATE NOT NULL,
-  MODIFY COLUMN user_id BIGINT NOT NULL;
-
-ALTER TABLE problems_solved DROP FOREIGN KEY FKne4c7i14qvkkhybrqx30td8s3;
-ALTER TABLE problems_solved
-  ADD CONSTRAINT fk_problems_solved_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  ADD CONSTRAINT fk_problems_solved_session FOREIGN KEY (session_id) REFERENCES coding_sessions(id) ON DELETE SET NULL;
-
--- 4. users: add missing columns, fix defaults and lengths
 ALTER TABLE users
-  ADD COLUMN is_active BOOLEAN NOT NULL DEFAULT TRUE AFTER daily_goal_minutes,
-  ADD COLUMN updated_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6) AFTER created_at,
-  MODIFY COLUMN created_at DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6),
-  MODIFY COLUMN daily_goal_minutes INT DEFAULT 120,
-  MODIFY COLUMN username VARCHAR(50) NOT NULL,
-  MODIFY COLUMN email VARCHAR(100) NOT NULL,
-  MODIFY COLUMN first_name VARCHAR(50) DEFAULT NULL,
-  MODIFY COLUMN last_name VARCHAR(50) DEFAULT NULL,
-  MODIFY COLUMN timezone VARCHAR(50) DEFAULT 'Asia/Colombo';
+  MODIFY COLUMN username VARCHAR(50) NOT NULL AFTER id,
+  MODIFY COLUMN email VARCHAR(100) NOT NULL AFTER username,
+  MODIFY COLUMN password_hash VARCHAR(255) NOT NULL AFTER email,
+  MODIFY COLUMN first_name VARCHAR(50) DEFAULT NULL AFTER password_hash,
+  MODIFY COLUMN last_name VARCHAR(50) DEFAULT NULL AFTER first_name,
+  MODIFY COLUMN bio TEXT DEFAULT NULL AFTER last_name,
+  MODIFY COLUMN avatar_url VARCHAR(255) DEFAULT NULL AFTER bio,
+  MODIFY COLUMN timezone VARCHAR(50) DEFAULT 'Asia/Colombo' AFTER avatar_url,
+  MODIFY COLUMN daily_goal_minutes INT DEFAULT 120 AFTER timezone,
+  MODIFY COLUMN is_active BOOLEAN DEFAULT TRUE AFTER daily_goal_minutes,
+  MODIFY COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER is_active,
+  MODIFY COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
 
--- 5. coding_sessions: nullable topic/language + correct FK cascade behavior
+ALTER TABLE topics
+  MODIFY COLUMN name VARCHAR(100) NOT NULL AFTER id,
+  MODIFY COLUMN category VARCHAR(50) NOT NULL AFTER name,
+  MODIFY COLUMN description TEXT DEFAULT NULL AFTER category,
+  MODIFY COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER description;
+
+ALTER TABLE programming_languages
+  MODIFY COLUMN name VARCHAR(50) NOT NULL AFTER id,
+  MODIFY COLUMN color_hex VARCHAR(7) NOT NULL DEFAULT '#808080' AFTER name;
+
 ALTER TABLE coding_sessions
-  MODIFY COLUMN topic_id BIGINT DEFAULT NULL,
-  MODIFY COLUMN language_id BIGINT DEFAULT NULL;
+  MODIFY COLUMN user_id BIGINT NOT NULL AFTER id,
+  MODIFY COLUMN topic_id BIGINT DEFAULT NULL AFTER user_id,
+  MODIFY COLUMN language_id BIGINT DEFAULT NULL AFTER topic_id,
+  MODIFY COLUMN session_date DATE NOT NULL AFTER language_id,
+  MODIFY COLUMN start_time TIME DEFAULT NULL AFTER session_date,
+  MODIFY COLUMN end_time TIME DEFAULT NULL AFTER start_time,
+  MODIFY COLUMN duration_minutes INT NOT NULL AFTER end_time,
+  MODIFY COLUMN notes TEXT DEFAULT NULL AFTER duration_minutes,
+  MODIFY COLUMN is_timer_session BOOLEAN DEFAULT FALSE AFTER notes,
+  MODIFY COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER is_timer_session,
+  MODIFY COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER created_at;
 
-ALTER TABLE coding_sessions DROP FOREIGN KEY FK3d8cdtvk2lsy1yue3jbedm1dh;
-ALTER TABLE coding_sessions ADD CONSTRAINT fk_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE daily_goals
+  MODIFY COLUMN user_id BIGINT NOT NULL AFTER id,
+  MODIFY COLUMN goal_date DATE NOT NULL AFTER user_id,
+  MODIFY COLUMN target_minutes INT NOT NULL AFTER goal_date,
+  MODIFY COLUMN achieved_minutes INT DEFAULT 0 AFTER target_minutes,
+  MODIFY COLUMN is_completed BOOLEAN DEFAULT FALSE AFTER achieved_minutes,
+  MODIFY COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER is_completed;
 
-ALTER TABLE coding_sessions DROP FOREIGN KEY FKl3lbtx74le1448s0c6tivkova;
-ALTER TABLE coding_sessions ADD CONSTRAINT fk_sessions_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE SET NULL;
+SET @daily_goal_index := (
+  SELECT INDEX_NAME
+  FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'daily_goals'
+    AND NON_UNIQUE = 0
+    AND INDEX_NAME <> 'PRIMARY'
+  GROUP BY INDEX_NAME
+  HAVING GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) = 'user_id,goal_date'
+  LIMIT 1
+);
+SET @daily_goal_sql := IF(
+  @daily_goal_index IS NULL OR @daily_goal_index = 'unique_user_date',
+  'SELECT 1',
+  CONCAT('ALTER TABLE daily_goals RENAME INDEX `', @daily_goal_index, '` TO unique_user_date')
+);
+PREPARE daily_goal_stmt FROM @daily_goal_sql;
+EXECUTE daily_goal_stmt;
+DEALLOCATE PREPARE daily_goal_stmt;
 
-ALTER TABLE coding_sessions DROP FOREIGN KEY FKk5ajfdmrwe1tbuieh61t6mmwo;
-ALTER TABLE coding_sessions ADD CONSTRAINT fk_sessions_language FOREIGN KEY (language_id) REFERENCES programming_languages(id) ON DELETE SET NULL;
+ALTER TABLE problems_solved
+  MODIFY COLUMN user_id BIGINT NOT NULL AFTER id,
+  MODIFY COLUMN session_id BIGINT DEFAULT NULL AFTER user_id,
+  MODIFY COLUMN platform VARCHAR(50) NOT NULL AFTER session_id,
+  MODIFY COLUMN problem_name VARCHAR(200) NOT NULL AFTER platform,
+  MODIFY COLUMN problem_url VARCHAR(500) DEFAULT NULL AFTER problem_name,
+  MODIFY COLUMN difficulty ENUM('EASY','MEDIUM','HARD') NOT NULL AFTER problem_url,
+  MODIFY COLUMN is_solved BOOLEAN DEFAULT FALSE AFTER difficulty,
+  MODIFY COLUMN time_taken_minutes INT DEFAULT NULL AFTER is_solved,
+  MODIFY COLUMN notes TEXT DEFAULT NULL AFTER time_taken_minutes,
+  MODIFY COLUMN solved_date DATE NOT NULL AFTER notes,
+  MODIFY COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER solved_date;
 
--- 6. daily_goals: correct FK cascade
-ALTER TABLE daily_goals DROP FOREIGN KEY FKt09st00y8w50mhd1aqpj5wyav;
-ALTER TABLE daily_goals ADD CONSTRAINT fk_goals_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE achievements
+  MODIFY COLUMN name VARCHAR(100) NOT NULL AFTER id,
+  MODIFY COLUMN description TEXT NOT NULL AFTER name,
+  MODIFY COLUMN icon VARCHAR(50) NOT NULL AFTER description,
+  MODIFY COLUMN criteria_type VARCHAR(50) NOT NULL AFTER icon,
+  MODIFY COLUMN criteria_value INT NOT NULL AFTER criteria_type;
 
--- 7. user_achievements: correct FK cascade on both sides
-ALTER TABLE user_achievements DROP FOREIGN KEY FK6vt5fpu0uta41vny1x6vpk45k;
-ALTER TABLE user_achievements ADD CONSTRAINT fk_ua_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+ALTER TABLE user_achievements
+  MODIFY COLUMN user_id BIGINT NOT NULL AFTER id,
+  MODIFY COLUMN achievement_id BIGINT NOT NULL AFTER user_id,
+  MODIFY COLUMN earned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER achievement_id;
 
-ALTER TABLE user_achievements DROP FOREIGN KEY FK8ipvec6cs8t3g8515thtlsxuf;
-ALTER TABLE user_achievements ADD CONSTRAINT fk_ua_achievement FOREIGN KEY (achievement_id) REFERENCES achievements(id) ON DELETE CASCADE;
-
--- 8. achievements: add the 2 missing SPECIAL achievements from doc (13 total)
-INSERT INTO achievements (name, description, icon, criteria_type, criteria_value)
-SELECT 'Night Owl', 'Code after midnight', 'NightOwl', 'SPECIAL', 1
-WHERE NOT EXISTS (SELECT 1 FROM achievements WHERE name = 'Night Owl');
-
-INSERT INTO achievements (name, description, icon, criteria_type, criteria_value)
-SELECT 'Early Bird', 'Code before 6 AM', 'EarlyBird', 'SPECIAL', 1
-WHERE NOT EXISTS (SELECT 1 FROM achievements WHERE name = 'Early Bird');
+SET @user_achievement_index := (
+  SELECT INDEX_NAME
+  FROM INFORMATION_SCHEMA.STATISTICS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'user_achievements'
+    AND NON_UNIQUE = 0
+    AND INDEX_NAME <> 'PRIMARY'
+  GROUP BY INDEX_NAME
+  HAVING GROUP_CONCAT(COLUMN_NAME ORDER BY SEQ_IN_INDEX) = 'user_id,achievement_id'
+  LIMIT 1
+);
+SET @user_achievement_sql := IF(
+  @user_achievement_index IS NULL OR @user_achievement_index = 'unique_user_achievement',
+  'SELECT 1',
+  CONCAT('ALTER TABLE user_achievements RENAME INDEX `', @user_achievement_index, '` TO unique_user_achievement')
+);
+PREPARE user_achievement_stmt FROM @user_achievement_sql;
+EXECUTE user_achievement_stmt;
+DEALLOCATE PREPARE user_achievement_stmt;

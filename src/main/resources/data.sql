@@ -8,7 +8,8 @@ INSERT INTO programming_languages (name, color_hex) VALUES
 ('C#', '#178600'),
 ('Dart', '#00B4AB'),
 ('PHP', '#4F5D95')
-ON DUPLICATE KEY UPDATE name = VALUES(name);
+ON DUPLICATE KEY UPDATE
+color_hex = VALUES(color_hex);
 
 INSERT INTO topics (name, category) VALUES
 ('Java Fundamentals', 'Backend'),
@@ -37,7 +38,8 @@ INSERT INTO topics (name, category) VALUES
 ('Machine Learning', 'Backend'),
 ('Flutter/Dart', 'Frontend'),
 ('System Design', 'Other')
-ON DUPLICATE KEY UPDATE name = VALUES(name);
+ON DUPLICATE KEY UPDATE
+category = VALUES(category);
 
 INSERT INTO achievements (name, description, icon, criteria_type, criteria_value) VALUES
 ('First Steps', 'Log your first coding session', '👶', 'TOTAL_SESSIONS', 1),
@@ -50,5 +52,11 @@ INSERT INTO achievements (name, description, icon, criteria_type, criteria_value
 ('Committed', 'Code for 50 total hours', '💪', 'TOTAL_HOURS', 50),
 ('Master', 'Code for 100 total hours', '🏆', 'TOTAL_HOURS', 100),
 ('Problem Solver', 'Solve 10 DSA problems', '🧩', 'PROBLEMS_SOLVED', 10),
-('Algorithm Expert', 'Solve 50 DSA problems', '🧠', 'PROBLEMS_SOLVED', 50)
-ON DUPLICATE KEY UPDATE name = VALUES(name);
+('Algorithm Expert', 'Solve 50 DSA problems', '🧠', 'PROBLEMS_SOLVED', 50),
+('Night Owl', 'Code after midnight', '🦉', 'SPECIAL', 1),
+('Early Bird', 'Code before 6 AM', '🐦', 'SPECIAL', 1)
+ON DUPLICATE KEY UPDATE
+description = VALUES(description),
+icon = VALUES(icon),
+criteria_type = VALUES(criteria_type),
+criteria_value = VALUES(criteria_value);

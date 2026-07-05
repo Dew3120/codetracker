@@ -23,7 +23,7 @@ public class Achievement {
     @Column(nullable = false, unique = true, length = 100)
     private String name;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT NOT NULL")
     private String description;
 
     @Column(nullable = false, length = 50)

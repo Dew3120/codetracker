@@ -10,18 +10,20 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "daily_goals", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"user_id", "goal_date"})
+        @UniqueConstraint(name = "unique_user_date", columnNames = {"user_id", "goal_date"})
 })
 @Getter
 @Setter
@@ -36,20 +38,24 @@ public class DailyGoal {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private User user;
 
-    @Column(name = "goal_date", nullable = false)
+    @Column(name = "goal_date", nullable = false, columnDefinition = "DATE")
     private LocalDate goalDate;
 
-    @Column(name = "target_minutes", nullable = false)
+    @Column(name = "target_minutes", nullable = false, columnDefinition = "INT")
     private Integer targetMinutes;
 
-    @Column(name = "achieved_minutes", nullable = false)
+    @Builder.Default
+    @Column(name = "achieved_minutes", columnDefinition = "INT DEFAULT 0")
     private Integer achievedMinutes = 0;
 
-    @Column(name = "is_completed", nullable = false)
+    @Builder.Default
+    @Column(name = "is_completed", columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isCompleted = false;
 
-    @Column(name = "created_at")
+    @CreationTimestamp
+    @Column(name = "created_at", columnDefinition = "TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
     private LocalDateTime createdAt;
 }
