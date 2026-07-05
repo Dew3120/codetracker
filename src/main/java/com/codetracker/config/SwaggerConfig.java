@@ -27,7 +27,7 @@ public class SwaggerConfig {
                                 .name("MIT")
                                 .url("https://opensource.org/licenses/MIT")))
                 .servers(List.of(
-                        new Server().url("http://localhost:8082")
+                        new Server().url("http://localhost:8080")
                                 .description("Local Development Server")
                 ));
     }

@@ -23,6 +23,8 @@ public class WeeklyReportResponse {
     private int totalSessions;
     private List<DailyStats> dailyBreakdown;
     private double averageMinutesPerDay;
+    private String topTopic;
+    private String topLanguage;
 
     @Getter
     @Setter

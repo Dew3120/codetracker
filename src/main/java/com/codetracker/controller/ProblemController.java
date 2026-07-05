@@ -1,11 +1,13 @@
 package com.codetracker.controller;
 
 import com.codetracker.dto.request.ProblemRequest;
+import com.codetracker.dto.response.ProblemResponse;
 import com.codetracker.entity.ProblemSolved;
 import com.codetracker.entity.User;
 import com.codetracker.service.AchievementService;
 import com.codetracker.service.ProblemService;
 import com.codetracker.service.UserService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -22,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 import java.util.Optional;
 
@@ -47,34 +49,37 @@ public class ProblemController {
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) String platform,
             @RequestParam(required = false) String difficulty,
-            @RequestParam(required = false) Boolean isSolved) {
+            @RequestParam(required = false) Boolean isSolved,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate) {
         User user = getCurrentUser();
-        return ResponseEntity.ok(problemService.getProblemsPaged(user.getId(), page, size, platform, difficulty, isSolved));
+        try {
+            LocalDate start = (startDate == null || startDate.isBlank()) ? null : LocalDate.parse(startDate);
+            LocalDate end = (endDate == null || endDate.isBlank()) ? null : LocalDate.parse(endDate);
+            return ResponseEntity.ok(problemService.getProblemsPaged(user.getId(), page, size, platform, difficulty, isSolved, start, end));
+        } catch (DateTimeParseException ex) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid date format");
+        }
     }
 
     @PostMapping
-    public ResponseEntity<ProblemSolved> createProblem(@RequestBody ProblemRequest request) {
+    public ResponseEntity<ProblemResponse> createProblem(@Valid @RequestBody ProblemRequest request) {
         User user = getCurrentUser();
         boolean solved = Boolean.TRUE.equals(request.getIsSolved());
-        LocalDate solvedDate = request.getSolvedDate();
-        if (solved && solvedDate == null) {
-            solvedDate = LocalDate.now();
-        }
         ProblemSolved problem = ProblemSolved.builder()
                 .platform(request.getPlatform())
                 .problemName(request.getProblemName())
                 .problemUrl(request.getProblemUrl())
-                .difficulty(request.getDifficulty() == null ? null : request.getDifficulty().toUpperCase())
+                .difficulty(normalizeDifficulty(request.getDifficulty()))
                 .isSolved(solved)
                 .timeTakenMinutes(request.getTimeTakenMinutes())
                 .notes(request.getNotes())
-                .solvedDate(solvedDate)
-                .createdAt(LocalDateTime.now())
+                .solvedDate(request.getSolvedDate())
                 .user(user)
                 .build();
         ProblemSolved saved = problemService.save(problem);
         achievementService.checkAndAwardAchievements(user.getId());
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ProblemResponse.fromEntity(saved));
     }
 
     @PutMapping("/{id}")
@@ -91,7 +96,7 @@ public class ProblemController {
         if (request.getPlatform() != null) problem.setPlatform(request.getPlatform());
         if (request.getProblemName() != null) problem.setProblemName(request.getProblemName());
         if (request.getProblemUrl() != null) problem.setProblemUrl(request.getProblemUrl());
-        if (request.getDifficulty() != null) problem.setDifficulty(request.getDifficulty().toUpperCase());
+        if (request.getDifficulty() != null) problem.setDifficulty(normalizeDifficulty(request.getDifficulty()));
         if (request.getTimeTakenMinutes() != null) problem.setTimeTakenMinutes(request.getTimeTakenMinutes());
         if (request.getNotes() != null) problem.setNotes(request.getNotes());
         if (request.getSolvedDate() != null) problem.setSolvedDate(request.getSolvedDate());
@@ -103,7 +108,7 @@ public class ProblemController {
         }
         ProblemSolved updated = problemService.save(problem);
         achievementService.checkAndAwardAchievements(user.getId());
-        return ResponseEntity.ok(updated);
+        return ResponseEntity.ok(ProblemResponse.fromEntity(updated));
     }
 
     @DeleteMapping("/{id}")
@@ -134,5 +139,13 @@ public class ProblemController {
         }
         return userService.findByUsername(authentication.getName())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not found"));
+    }
+
+    private String normalizeDifficulty(String difficulty) {
+        String normalized = difficulty == null ? null : difficulty.toUpperCase();
+        if (!"EASY".equals(normalized) && !"MEDIUM".equals(normalized) && !"HARD".equals(normalized)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Difficulty must be EASY, MEDIUM, or HARD");
+        }
+        return normalized;
     }
 }

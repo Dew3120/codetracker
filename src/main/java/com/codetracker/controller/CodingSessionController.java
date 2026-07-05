@@ -49,6 +49,7 @@ public class CodingSessionController {
     public ResponseEntity<Map<String, Object>> getUserSessions(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "sessionDate,desc") String sort,
             @RequestParam(required = false) Long topicId,
             @RequestParam(required = false) Long languageId,
             @RequestParam(required = false) String startDate,
@@ -57,7 +58,7 @@ public class CodingSessionController {
         try {
             LocalDate start = (startDate == null || startDate.isBlank()) ? null : LocalDate.parse(startDate);
             LocalDate end = (endDate == null || endDate.isBlank()) ? null : LocalDate.parse(endDate);
-            return ResponseEntity.ok(codingSessionService.getUserSessionsPaged(userId, page, size, topicId, languageId, start, end));
+            return ResponseEntity.ok(codingSessionService.getUserSessionsPaged(userId, page, size, sort, topicId, languageId, start, end));
         } catch (DateTimeParseException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid date format");
         }

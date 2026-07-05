@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -54,6 +55,8 @@ public class ReportService {
         }
 
         double averageMinutesPerDay = dailyBreakdown.isEmpty() ? 0.0 : totalMinutes / 7.0;
+        String topTopic = getTopTopic(sessions);
+        String topLanguage = getTopLanguage(sessions);
 
         return WeeklyReportResponse.builder()
                 .weekStart(startOfWeek)
@@ -62,6 +65,8 @@ public class ReportService {
                 .totalSessions(totalSessions)
                 .dailyBreakdown(dailyBreakdown)
                 .averageMinutesPerDay(averageMinutesPerDay)
+                .topTopic(topTopic)
+                .topLanguage(topLanguage)
                 .build();
     }
 
@@ -134,5 +139,29 @@ public class ReportService {
         return TopicBreakdownResponse.builder()
                 .topicStats(stats)
                 .build();
+    }
+
+    private String getTopTopic(List<CodingSession> sessions) {
+        return sessions.stream()
+                .filter(session -> session.getTopic() != null)
+                .collect(Collectors.groupingBy(session -> session.getTopic().getName(),
+                        Collectors.summingInt(session -> session.getDurationMinutes() != null ? session.getDurationMinutes() : 0)))
+                .entrySet()
+                .stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
+    }
+
+    private String getTopLanguage(List<CodingSession> sessions) {
+        return sessions.stream()
+                .filter(session -> session.getLanguage() != null)
+                .collect(Collectors.groupingBy(session -> session.getLanguage().getName(),
+                        Collectors.summingInt(session -> session.getDurationMinutes() != null ? session.getDurationMinutes() : 0)))
+                .entrySet()
+                .stream()
+                .max(Map.Entry.comparingByValue())
+                .map(Map.Entry::getKey)
+                .orElse(null);
     }
 }

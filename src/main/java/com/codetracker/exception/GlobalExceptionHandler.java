@@ -45,11 +45,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleUnauthorized(UnauthorizedException ex) {
         return new ResponseEntity<>(
                 ErrorResponse.builder()
-                        .status(HttpStatus.FORBIDDEN.value())
+                        .status(HttpStatus.UNAUTHORIZED.value())
                         .message(ex.getMessage())
                         .timestamp(LocalDateTime.now())
                         .build(),
-                HttpStatus.FORBIDDEN);
+                HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(ResponseStatusException.class)

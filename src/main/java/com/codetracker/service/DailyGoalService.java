@@ -50,16 +50,14 @@ public class DailyGoalService {
     }
 
     public void updateGoalProgress(Long userId, LocalDate date, int minutesAdded) {
-        if (minutesAdded <= 0) {
+        if (minutesAdded == 0) {
             return;
         }
 
         dailyGoalRepository.findByUserIdAndGoalDate(userId, date).ifPresent(goal -> {
-            int updatedMinutes = goal.getAchievedMinutes() + minutesAdded;
+            int updatedMinutes = Math.max(0, goal.getAchievedMinutes() + minutesAdded);
             goal.setAchievedMinutes(updatedMinutes);
-            if (goal.getTargetMinutes() != null && updatedMinutes >= goal.getTargetMinutes()) {
-                goal.setIsCompleted(true);
-            }
+            goal.setIsCompleted(goal.getTargetMinutes() != null && updatedMinutes >= goal.getTargetMinutes());
             dailyGoalRepository.save(goal);
         });
     }

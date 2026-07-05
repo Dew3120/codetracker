@@ -1,9 +1,11 @@
 package com.codetracker.service;
 
+import com.codetracker.dto.response.ProblemResponse;
 import com.codetracker.entity.ProblemSolved;
 import com.codetracker.repository.ProblemSolvedRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,11 +38,14 @@ public class ProblemService {
     }
 
     public Map<String, Object> getProblemsPaged(Long userId, int page, int size,
-                                                String platform, String difficulty, Boolean isSolved) {
+                                                String platform, String difficulty, Boolean isSolved,
+                                                LocalDate startDate, LocalDate endDate) {
         List<ProblemSolved> filtered = problemRepository.findAllByUserId(userId).stream()
                 .filter(p -> platform == null || platform.equalsIgnoreCase(p.getPlatform()))
                 .filter(p -> difficulty == null || (p.getDifficulty() != null && difficulty.equalsIgnoreCase(p.getDifficulty())))
                 .filter(p -> isSolved == null || isSolved.equals(p.getIsSolved()))
+                .filter(p -> startDate == null || !p.getSolvedDate().isBefore(startDate))
+                .filter(p -> endDate == null || !p.getSolvedDate().isAfter(endDate))
                 .collect(Collectors.toList());
 
         int total = filtered.size();
@@ -49,7 +54,9 @@ public class ProblemService {
         int totalPages = (int) Math.ceil((double) total / safeSize);
         int from = Math.min(safePage * safeSize, total);
         int to = Math.min(from + safeSize, total);
-        List<ProblemSolved> content = filtered.subList(from, to);
+        List<ProblemResponse> content = filtered.subList(from, to).stream()
+                .map(ProblemResponse::fromEntity)
+                .collect(Collectors.toList());
 
         Map<String, Object> response = new HashMap<>();
         response.put("content", content);
@@ -64,52 +71,65 @@ public class ProblemService {
         List<ProblemSolved> problems = problemRepository.findAllByUserId(userId);
         int totalAttempted = problems.size();
         int totalSolved = 0;
-        int totalMinutes = 0;
-        int withTime = 0;
-
-        Map<String, int[]> byDifficulty = new HashMap<>();
-        byDifficulty.put("EASY", new int[2]);
-        byDifficulty.put("MEDIUM", new int[2]);
-        byDifficulty.put("HARD", new int[2]);
-        Map<String, int[]> byPlatform = new HashMap<>();
+        Map<String, DifficultyStats> byDifficulty = new HashMap<>();
+        byDifficulty.put("EASY", new DifficultyStats());
+        byDifficulty.put("MEDIUM", new DifficultyStats());
+        byDifficulty.put("HARD", new DifficultyStats());
+        Map<String, Integer> byPlatform = new HashMap<>();
 
         for (ProblemSolved p : problems) {
             boolean solved = Boolean.TRUE.equals(p.getIsSolved());
             if (solved) totalSolved++;
-            if (p.getTimeTakenMinutes() != null) { totalMinutes += p.getTimeTakenMinutes(); withTime++; }
-
             String diff = p.getDifficulty() == null ? "MEDIUM" : p.getDifficulty().toUpperCase();
-            byDifficulty.computeIfAbsent(diff, k -> new int[2]);
-            byDifficulty.get(diff)[0]++;
-            if (solved) byDifficulty.get(diff)[1]++;
+            DifficultyStats stats = byDifficulty.computeIfAbsent(diff, k -> new DifficultyStats());
+            stats.attempted++;
+            if (solved) {
+                stats.solved++;
+                if (p.getTimeTakenMinutes() != null) {
+                    stats.totalSolvedMinutes += p.getTimeTakenMinutes();
+                    stats.solvedWithTime++;
+                }
+            }
 
             String plat = p.getPlatform() == null ? "Unknown" : p.getPlatform();
-            byPlatform.computeIfAbsent(plat, k -> new int[2]);
-            byPlatform.get(plat)[0]++;
-            if (solved) byPlatform.get(plat)[1]++;
+            byPlatform.put(plat, byPlatform.getOrDefault(plat, 0) + 1);
         }
 
         double successRate = totalAttempted == 0 ? 0.0 : Math.round(totalSolved * 10000.0 / totalAttempted) / 100.0;
-        double avgMinutes = withTime == 0 ? 0.0 : Math.round(totalMinutes * 100.0 / withTime) / 100.0;
 
         Map<String, Object> response = new HashMap<>();
         response.put("totalAttempted", totalAttempted);
         response.put("totalSolved", totalSolved);
         response.put("successRate", successRate);
-        response.put("avgMinutes", avgMinutes);
-        response.put("byDifficulty", toOut(byDifficulty));
-        response.put("byPlatform", toOut(byPlatform));
+        response.put("byDifficulty", toDifficultyOutput(byDifficulty));
+        response.put("byPlatform", byPlatform);
         return response;
     }
 
-    private Map<String, Object> toOut(Map<String, int[]> in) {
+    private Map<String, Object> toDifficultyOutput(Map<String, DifficultyStats> in) {
         Map<String, Object> out = new HashMap<>();
-        for (Map.Entry<String, int[]> e : in.entrySet()) {
+        for (Map.Entry<String, DifficultyStats> e : in.entrySet()) {
+            DifficultyStats stats = e.getValue();
             Map<String, Object> m = new HashMap<>();
-            m.put("attempted", e.getValue()[0]);
-            m.put("solved", e.getValue()[1]);
+            m.put("attempted", stats.attempted);
+            m.put("solved", stats.solved);
+            m.put("avgMinutes", stats.averageSolvedMinutes());
             out.put(e.getKey(), m);
         }
         return out;
+    }
+
+    private static class DifficultyStats {
+        private int attempted;
+        private int solved;
+        private int totalSolvedMinutes;
+        private int solvedWithTime;
+
+        private double averageSolvedMinutes() {
+            if (solvedWithTime == 0) {
+                return 0.0;
+            }
+            return Math.round(totalSolvedMinutes * 10.0 / solvedWithTime) / 10.0;
+        }
     }
 }

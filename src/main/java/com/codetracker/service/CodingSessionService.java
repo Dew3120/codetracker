@@ -21,6 +21,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,31 +43,23 @@ public class CodingSessionService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        Topic topic = topicRepository.findById(request.getTopicId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Topic not found"));
+        LocalDate sessionDate = requireValidSessionDate(request.getSessionDate());
 
-        ProgrammingLanguage language = programmingLanguageRepository.findById(request.getLanguageId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Programming language not found"));
+        Topic topic = resolveTopic(request.getTopicId());
+        ProgrammingLanguage language = resolveLanguage(request.getLanguageId());
 
-        Integer duration = request.getDurationMinutes();
-        if (duration == null) {
-            duration = calculateDuration(request.getStartTime(), request.getEndTime());
-        }
-
-        if (duration == null || duration <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duration must be provided and greater than zero");
-        }
+        Integer duration = resolveDuration(request.getStartTime(), request.getEndTime(), request.getDurationMinutes());
 
         CodingSession session = CodingSession.builder()
                 .user(user)
                 .topic(topic)
                 .language(language)
-                .sessionDate(request.getSessionDate())
+                .sessionDate(sessionDate)
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
                 .durationMinutes(duration)
                 .notes(request.getNotes())
-                .isTimerSession(request.getIsTimerSession())
+                .isTimerSession(Boolean.TRUE.equals(request.getIsTimerSession()))
                 .createdAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
                 .build();
@@ -83,7 +76,7 @@ public class CodingSessionService {
                 .collect(Collectors.toList());
     }
 
-    public Map<String, Object> getUserSessionsPaged(Long userId, int page, int size,
+    public Map<String, Object> getUserSessionsPaged(Long userId, int page, int size, String sort,
                                                     Long topicId, Long languageId,
                                                     LocalDate startDate, LocalDate endDate) {
         List<CodingSession> filtered = codingSessionRepository.findByUserIdWithDetails(userId).stream()
@@ -91,6 +84,7 @@ public class CodingSessionService {
                 .filter(cs -> languageId == null || (cs.getLanguage() != null && languageId.equals(cs.getLanguage().getId())))
                 .filter(cs -> startDate == null || !cs.getSessionDate().isBefore(startDate))
                 .filter(cs -> endDate == null || !cs.getSessionDate().isAfter(endDate))
+                .sorted(resolveSessionSort(sort))
                 .collect(Collectors.toList());
 
         int total = filtered.size();
@@ -143,34 +137,38 @@ public class CodingSessionService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Access denied");
         }
 
-        Topic topic = topicRepository.findById(request.getTopicId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Topic not found"));
+        LocalDate oldSessionDate = existing.getSessionDate();
+        int oldDuration = existing.getDurationMinutes();
 
-        ProgrammingLanguage language = programmingLanguageRepository.findById(request.getLanguageId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Programming language not found"));
-
-        Integer requestedDuration = request.getDurationMinutes();
-        if (requestedDuration == null) {
-            requestedDuration = calculateDuration(request.getStartTime(), request.getEndTime());
-        }
-        if (requestedDuration == null || requestedDuration <= 0) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duration must be provided and greater than zero");
-        }
-
-        int durationDelta = requestedDuration - existing.getDurationMinutes();
+        Topic topic = request.getTopicId() == null ? existing.getTopic() : resolveTopic(request.getTopicId());
+        ProgrammingLanguage language = request.getLanguageId() == null ? existing.getLanguage() : resolveLanguage(request.getLanguageId());
+        LocalDate sessionDate = request.getSessionDate() == null
+                ? existing.getSessionDate()
+                : requireValidSessionDate(request.getSessionDate());
+        LocalTime startTime = request.getStartTime() == null ? existing.getStartTime() : request.getStartTime();
+        LocalTime endTime = request.getEndTime() == null ? existing.getEndTime() : request.getEndTime();
+        Integer requestedDuration = resolveUpdatedDuration(existing, request, startTime, endTime);
+        int durationDelta = requestedDuration - oldDuration;
 
         existing.setTopic(topic);
         existing.setLanguage(language);
-        existing.setSessionDate(request.getSessionDate());
-        existing.setStartTime(request.getStartTime());
-        existing.setEndTime(request.getEndTime());
+        existing.setSessionDate(sessionDate);
+        existing.setStartTime(startTime);
+        existing.setEndTime(endTime);
         existing.setDurationMinutes(requestedDuration);
-        existing.setNotes(request.getNotes());
-        existing.setIsTimerSession(request.getIsTimerSession());
+        if (request.getNotes() != null) {
+            existing.setNotes(request.getNotes());
+        }
+        if (request.getIsTimerSession() != null) {
+            existing.setIsTimerSession(request.getIsTimerSession());
+        }
         existing.setUpdatedAt(LocalDateTime.now());
 
         CodingSession saved = codingSessionRepository.save(existing);
-        if (durationDelta > 0) {
+        if (!oldSessionDate.equals(saved.getSessionDate())) {
+            dailyGoalService.updateGoalProgress(userId, oldSessionDate, -oldDuration);
+            dailyGoalService.updateGoalProgress(userId, saved.getSessionDate(), requestedDuration);
+        } else if (durationDelta != 0) {
             dailyGoalService.updateGoalProgress(userId, saved.getSessionDate(), durationDelta);
         }
         achievementService.checkAndAwardAchievements(userId);
@@ -195,5 +193,71 @@ public class CodingSessionService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "End time must be after start time");
         }
         return (int) Duration.between(startTime, endTime).toMinutes();
+    }
+
+    private Topic resolveTopic(Long topicId) {
+        if (topicId == null) {
+            return null;
+        }
+        return topicRepository.findById(topicId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Topic not found"));
+    }
+
+    private ProgrammingLanguage resolveLanguage(Long languageId) {
+        if (languageId == null) {
+            return null;
+        }
+        return programmingLanguageRepository.findById(languageId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Programming language not found"));
+    }
+
+    private LocalDate requireValidSessionDate(LocalDate sessionDate) {
+        if (sessionDate == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Session date is required");
+        }
+        if (sessionDate.isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Session date cannot be in the future");
+        }
+        return sessionDate;
+    }
+
+    private Integer resolveDuration(LocalTime startTime, LocalTime endTime, Integer requestedDuration) {
+        Integer duration = startTime != null && endTime != null
+                ? calculateDuration(startTime, endTime)
+                : requestedDuration;
+        if (duration == null || duration <= 0 || duration > 1440) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Duration must be between 1 and 1440 minutes");
+        }
+        return duration;
+    }
+
+    private Integer resolveUpdatedDuration(CodingSession existing, SessionRequest request,
+                                           LocalTime startTime, LocalTime endTime) {
+        boolean timeChanged = request.getStartTime() != null || request.getEndTime() != null;
+        if (!timeChanged && request.getDurationMinutes() == null) {
+            return existing.getDurationMinutes();
+        }
+        if (timeChanged && (startTime == null || endTime == null) && request.getDurationMinutes() == null) {
+            return existing.getDurationMinutes();
+        }
+        return resolveDuration(startTime, endTime, request.getDurationMinutes());
+    }
+
+    private Comparator<CodingSession> resolveSessionSort(String sort) {
+        String value = sort == null || sort.isBlank() ? "sessionDate,desc" : sort;
+        String[] parts = value.split(",");
+        String field = parts[0].trim();
+        boolean descending = parts.length < 2 || !"asc".equalsIgnoreCase(parts[1].trim());
+
+        Comparator<CodingSession> comparator;
+        if ("durationMinutes".equalsIgnoreCase(field)) {
+            comparator = Comparator.comparing(CodingSession::getDurationMinutes, Comparator.nullsLast(Integer::compareTo));
+        } else if ("createdAt".equalsIgnoreCase(field)) {
+            comparator = Comparator.comparing(CodingSession::getCreatedAt, Comparator.nullsLast(LocalDateTime::compareTo));
+        } else {
+            comparator = Comparator.comparing(CodingSession::getSessionDate, Comparator.nullsLast(LocalDate::compareTo));
+        }
+
+        return descending ? comparator.reversed() : comparator;
     }
 }

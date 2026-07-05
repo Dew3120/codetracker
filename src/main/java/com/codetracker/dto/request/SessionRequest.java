@@ -2,7 +2,7 @@ package com.codetracker.dto.request;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PastOrPresent;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,13 +19,11 @@ import java.time.LocalTime;
 @Builder
 public class SessionRequest {
 
-    @NotNull
     private Long topicId;
 
-    @NotNull
     private Long languageId;
 
-    @NotNull
+    @PastOrPresent
     private LocalDate sessionDate;
 
     private LocalTime startTime;
