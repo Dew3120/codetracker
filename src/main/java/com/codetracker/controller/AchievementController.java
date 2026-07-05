@@ -1,8 +1,8 @@
 package com.codetracker.controller;
 
-import com.codetracker.model.Achievement;
-import com.codetracker.model.User;
-import com.codetracker.model.UserAchievement;
+import com.codetracker.entity.Achievement;
+import com.codetracker.entity.User;
+import com.codetracker.entity.UserAchievement;
 import com.codetracker.repository.AchievementRepository;
 import com.codetracker.repository.UserAchievementRepository;
 import com.codetracker.service.UserService;

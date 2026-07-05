@@ -1,4 +1,4 @@
-package com.codetracker.model;
+package com.codetracker.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;

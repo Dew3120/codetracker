@@ -1,6 +1,6 @@
 package com.codetracker.controller;
 
-import com.codetracker.model.Topic;
+import com.codetracker.entity.Topic;
 import com.codetracker.repository.TopicRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

@@ -1,6 +1,6 @@
 package com.codetracker.service;
 
-import com.codetracker.model.User;
+import com.codetracker.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;

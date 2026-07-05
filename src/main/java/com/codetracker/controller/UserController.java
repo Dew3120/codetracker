@@ -2,7 +2,7 @@ package com.codetracker.controller;
 
 import com.codetracker.dto.request.ProfileUpdateRequest;
 import com.codetracker.dto.response.UserResponse;
-import com.codetracker.model.User;
+import com.codetracker.entity.User;
 import com.codetracker.repository.UserRepository;
 import com.codetracker.service.UserService;
 import jakarta.validation.Valid;
@@ -34,7 +34,7 @@ public class UserController {
                 .orElseThrow(() -> new RuntimeException("Current user not found"));
     }
 
-    // âœ… FIXED: GET /api/users/me - Get current user profile
+    // Ã¢Å“â€¦ FIXED: GET /api/users/me - Get current user profile
     @GetMapping("/me")
     public ResponseEntity<?> getMe() {
         try {
@@ -50,7 +50,7 @@ public class UserController {
         }
     }
 
-    // âœ… PUT /api/users/profile - Update profile
+    // Ã¢Å“â€¦ PUT /api/users/profile - Update profile
     @PutMapping("/profile")
     public ResponseEntity<?> updateProfile(@Valid @RequestBody ProfileUpdateRequest request) {
         try {
@@ -84,7 +84,7 @@ public class UserController {
         }
     }
 
-    // âœ… PUT /api/users/password - Change password
+    // Ã¢Å“â€¦ PUT /api/users/password - Change password
     @PutMapping("/password")
     public ResponseEntity<?> changePassword(@RequestBody ChangePasswordRequest request) {
         try {
@@ -109,7 +109,7 @@ public class UserController {
         }
     }
 
-    // âœ… DELETE /api/users/me - Delete account
+    // Ã¢Å“â€¦ DELETE /api/users/me - Delete account
     @DeleteMapping("/me")
     public ResponseEntity<?> deleteAccount() {
         try {

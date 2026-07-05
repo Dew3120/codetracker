@@ -1,5 +1,8 @@
 package com.codetracker.config;
 
+import com.codetracker.entity.User;
+import com.codetracker.repository.UserRepository;
+import com.codetracker.service.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,7 +23,10 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
-    private JwtUtils jwtUtils;
+    private JwtService jwtService;
+
+    @Autowired
+    private UserRepository userRepository;
 
     @Autowired
     private UserDetailsService userDetailsService;
@@ -31,41 +37,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String jwt = extractJwtFromRequest(request);
 
-            if (jwt != null && !jwt.isEmpty()) {
-                String username = jwtUtils.extractUsername(jwt);
+            if (jwt != null && jwtService.isTokenValid(jwt)
+                    && SecurityContextHolder.getContext().getAuthentication() == null) {
+                Long userId = jwtService.extractUserId(jwt);
+                User user = userRepository.findById(userId).orElse(null);
 
-                if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-                    UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-
-                    if (jwtUtils.validateToken(jwt, userDetails)) {
-                        UsernamePasswordAuthenticationToken authentication =
-                                new UsernamePasswordAuthenticationToken(
-                                        userDetails,
-                                        null,
-                                        userDetails.getAuthorities()
-                                );
-                        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
-                    }
+                if (user != null) {
+                    UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
                 }
             }
         } catch (Exception e) {
-            // Pass the exception as the second argument so the logger can record the stack trace.
-            // org.springframework.web.filter.OncePerRequestFilter provides a protected
-            // `logger` (org.apache.commons.logging.Log) whose error method expects
-            // either (Object message) or (Object message, Throwable t).
             logger.error("Cannot set user authentication", e);
         }
 
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Extracts JWT token from the Authorization header
-     * Expected format: "Bearer <token>"
-     * @param request the HTTP request
-     * @return the JWT token or null if not found
-     */
     private String extractJwtFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
@@ -74,4 +65,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 }
-

@@ -1,4 +1,4 @@
-package com.codetracker.model;
+package com.codetracker.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -32,7 +32,7 @@ public class User {
     @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)   // ÃƒÂ¢Ã…â€œÃ¢â‚¬Â¦ Maps to password_hash column
+    @Column(name = "password_hash", nullable = false)   // ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¢ÃƒÆ’Ã¢â‚¬Â¦ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦ Maps to password_hash column
     private String password;
 
     @Column(name = "first_name", length = 50)
@@ -80,5 +80,5 @@ public class User {
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnore
-    private List<Problem> problems = new ArrayList<>();
+    private List<ProblemSolved> problems = new ArrayList<>();
 }

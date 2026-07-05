@@ -2,12 +2,12 @@ package com.codetracker.service;
 
 import com.codetracker.dto.request.SessionRequest;
 import com.codetracker.dto.response.SessionResponse;
-import com.codetracker.model.CodingSession;
-import com.codetracker.model.ProgrammingLanguage;
-import com.codetracker.model.Topic;
-import com.codetracker.model.User;
+import com.codetracker.entity.CodingSession;
+import com.codetracker.entity.ProgrammingLanguage;
+import com.codetracker.entity.Topic;
+import com.codetracker.entity.User;
 import com.codetracker.repository.CodingSessionRepository;
-import com.codetracker.repository.ProgrammingLanguageRepository;
+import com.codetracker.repository.LanguageRepository;
 import com.codetracker.repository.TopicRepository;
 import com.codetracker.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +33,7 @@ public class CodingSessionService {
 
     private final CodingSessionRepository codingSessionRepository;
     private final TopicRepository topicRepository;
-    private final ProgrammingLanguageRepository programmingLanguageRepository;
+    private final LanguageRepository programmingLanguageRepository;
     private final UserRepository userRepository;
     private final DailyGoalService dailyGoalService;
     private final AchievementService achievementService;

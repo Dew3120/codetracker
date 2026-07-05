@@ -1,4 +1,4 @@
-package com.codetracker.model;
+package com.codetracker.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Problem {
+public class ProblemSolved {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

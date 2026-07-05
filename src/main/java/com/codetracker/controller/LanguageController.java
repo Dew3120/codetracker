@@ -1,7 +1,7 @@
 package com.codetracker.controller;
 
-import com.codetracker.model.ProgrammingLanguage;
-import com.codetracker.repository.ProgrammingLanguageRepository;
+import com.codetracker.entity.ProgrammingLanguage;
+import com.codetracker.repository.LanguageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +15,7 @@ import java.util.List;
 public class LanguageController {
 
     @Autowired
-    private ProgrammingLanguageRepository languageRepository;
+    private LanguageRepository languageRepository;
 
     @GetMapping
     public ResponseEntity<List<ProgrammingLanguage>> getAllLanguages() {

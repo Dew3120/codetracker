@@ -1,6 +1,6 @@
 package com.codetracker.dto.response;
 
-import com.codetracker.model.CodingSession;
+import com.codetracker.entity.CodingSession;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import com.fasterxml.jackson.annotation.JsonInclude;

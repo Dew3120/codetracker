@@ -2,12 +2,13 @@ package com.codetracker.service;
 
 import com.codetracker.dto.response.AchievementResponse;
 import com.codetracker.exception.ResourceNotFoundException;
-import com.codetracker.model.Achievement;
-import com.codetracker.model.CodingSession;
-import com.codetracker.model.User;
+import com.codetracker.entity.Achievement;
+import com.codetracker.entity.CodingSession;
+import com.codetracker.entity.User;
+import com.codetracker.entity.UserAchievement;
 import com.codetracker.repository.AchievementRepository;
 import com.codetracker.repository.CodingSessionRepository;
-import com.codetracker.repository.ProblemRepository;
+import com.codetracker.repository.ProblemSolvedRepository;
 import com.codetracker.repository.UserAchievementRepository;
 import com.codetracker.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -30,7 +31,7 @@ public class AchievementService {
     private final AchievementRepository achievementRepository;
     private final UserAchievementRepository userAchievementRepository;
     private final CodingSessionRepository codingSessionRepository;
-    private final ProblemRepository problemRepository;
+    private final ProblemSolvedRepository problemRepository;
 
     public void checkAndAwardAchievements(Long userId) {
         User user = userRepository.findById(userId)
@@ -56,7 +57,7 @@ public class AchievementService {
             }
             if (meetsCriteria(achievement, sessionCount, solvedProblems, totalMinutes, currentStreak)) {
                 userAchievementRepository.save(
-                        com.codetracker.model.UserAchievement.builder()
+                        UserAchievement.builder()
                                 .user(user)
                                 .achievement(achievement)
                                 .build());
@@ -81,7 +82,7 @@ public class AchievementService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         List<Long> earnedIds = userAchievementRepository.findEarnedAchievementIdsByUserId(userId);
-        List<com.codetracker.model.UserAchievement> earnedAchievements = userAchievementRepository.findByUserIdWithAchievement(userId);
+        List<UserAchievement> earnedAchievements = userAchievementRepository.findByUserIdWithAchievement(userId);
 
         return achievementRepository.findAll().stream()
                 .map(achievement -> {
@@ -97,7 +98,7 @@ public class AchievementService {
                             .earnedAt(earnedAchievements.stream()
                                     .filter(ua -> ua.getAchievement().getId().equals(achievement.getId()))
                                     .findFirst()
-                                    .map(com.codetracker.model.UserAchievement::getEarnedAt)
+                                    .map(UserAchievement::getEarnedAt)
                                     .orElse(null))
                             .build();
                 })

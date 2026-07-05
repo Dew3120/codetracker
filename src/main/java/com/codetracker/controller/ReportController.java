@@ -4,7 +4,7 @@ import com.codetracker.dto.response.LanguageDistributionResponse;
 import com.codetracker.dto.response.MonthlyReportResponse;
 import com.codetracker.dto.response.TopicBreakdownResponse;
 import com.codetracker.dto.response.WeeklyReportResponse;
-import com.codetracker.model.User;
+import com.codetracker.entity.User;
 import com.codetracker.service.ReportService;
 import com.codetracker.service.UserService;
 import lombok.RequiredArgsConstructor;

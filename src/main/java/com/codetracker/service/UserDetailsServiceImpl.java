@@ -1,6 +1,6 @@
 package com.codetracker.service;
 
-import com.codetracker.model.User;
+import com.codetracker.entity.User;
 import com.codetracker.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;

@@ -1,8 +1,8 @@
 package com.codetracker.controller;
 
 import com.codetracker.dto.request.ProblemRequest;
-import com.codetracker.model.Problem;
-import com.codetracker.model.User;
+import com.codetracker.entity.ProblemSolved;
+import com.codetracker.entity.User;
 import com.codetracker.service.AchievementService;
 import com.codetracker.service.ProblemService;
 import com.codetracker.service.UserService;
@@ -53,14 +53,14 @@ public class ProblemController {
     }
 
     @PostMapping
-    public ResponseEntity<Problem> createProblem(@RequestBody ProblemRequest request) {
+    public ResponseEntity<ProblemSolved> createProblem(@RequestBody ProblemRequest request) {
         User user = getCurrentUser();
         boolean solved = Boolean.TRUE.equals(request.getIsSolved());
         LocalDate solvedDate = request.getSolvedDate();
         if (solved && solvedDate == null) {
             solvedDate = LocalDate.now();
         }
-        Problem problem = Problem.builder()
+        ProblemSolved problem = ProblemSolved.builder()
                 .platform(request.getPlatform())
                 .problemName(request.getProblemName())
                 .problemUrl(request.getProblemUrl())
@@ -72,7 +72,7 @@ public class ProblemController {
                 .createdAt(LocalDateTime.now())
                 .user(user)
                 .build();
-        Problem saved = problemService.save(problem);
+        ProblemSolved saved = problemService.save(problem);
         achievementService.checkAndAwardAchievements(user.getId());
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
     }
@@ -80,11 +80,11 @@ public class ProblemController {
     @PutMapping("/{id}")
     public ResponseEntity<?> updateProblem(@PathVariable Long id, @RequestBody ProblemRequest request) {
         User user = getCurrentUser();
-        Optional<Problem> problemOpt = problemService.findById(id);
+        Optional<ProblemSolved> problemOpt = problemService.findById(id);
         if (problemOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Problem not found");
         }
-        Problem problem = problemOpt.get();
+        ProblemSolved problem = problemOpt.get();
         if (!problem.getUser().getId().equals(user.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You cannot update this problem");
         }
@@ -101,7 +101,7 @@ public class ProblemController {
                 problem.setSolvedDate(LocalDate.now());
             }
         }
-        Problem updated = problemService.save(problem);
+        ProblemSolved updated = problemService.save(problem);
         achievementService.checkAndAwardAchievements(user.getId());
         return ResponseEntity.ok(updated);
     }
@@ -109,11 +109,11 @@ public class ProblemController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProblem(@PathVariable Long id) {
         User user = getCurrentUser();
-        Optional<Problem> problemOpt = problemService.findById(id);
+        Optional<ProblemSolved> problemOpt = problemService.findById(id);
         if (problemOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Problem not found");
         }
-        Problem problem = problemOpt.get();
+        ProblemSolved problem = problemOpt.get();
         if (!problem.getUser().getId().equals(user.getId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You cannot delete this problem");
         }

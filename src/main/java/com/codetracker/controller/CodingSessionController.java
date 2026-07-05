@@ -2,7 +2,7 @@ package com.codetracker.controller;
 
 import com.codetracker.dto.request.SessionRequest;
 import com.codetracker.dto.response.SessionResponse;
-import com.codetracker.model.User;
+import com.codetracker.entity.User;
 import com.codetracker.service.CodingSessionService;
 import com.codetracker.service.UserService;
 import jakarta.validation.Valid;

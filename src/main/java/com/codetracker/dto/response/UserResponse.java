@@ -1,6 +1,6 @@
 package com.codetracker.dto.response;
 
-import com.codetracker.model.User;
+import com.codetracker.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;

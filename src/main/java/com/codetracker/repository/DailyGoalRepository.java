@@ -1,6 +1,6 @@
 package com.codetracker.repository;
 
-import com.codetracker.model.DailyGoal;
+import com.codetracker.entity.DailyGoal;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

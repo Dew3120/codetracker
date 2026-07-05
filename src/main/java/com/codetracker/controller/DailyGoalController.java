@@ -3,7 +3,7 @@ package com.codetracker.controller;
 import com.codetracker.dto.request.GoalRequest;
 import com.codetracker.dto.response.GoalResponse;
 import com.codetracker.dto.response.StreakResponse;
-import com.codetracker.model.User;
+import com.codetracker.entity.User;
 import com.codetracker.service.DailyGoalService;
 import com.codetracker.service.UserService;
 import jakarta.validation.Valid;

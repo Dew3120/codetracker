@@ -1,6 +1,6 @@
 package com.codetracker.repository;
 
-import com.codetracker.model.User;
+import com.codetracker.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

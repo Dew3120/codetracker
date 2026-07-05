@@ -1,11 +1,11 @@
 package com.codetracker.controller;
 
-import com.codetracker.config.JwtUtils;
+import com.codetracker.service.JwtService;
 import com.codetracker.dto.request.LoginRequest;
 import com.codetracker.dto.request.RegisterRequest;
 import com.codetracker.dto.response.AuthResponse;
 import com.codetracker.dto.response.UserResponse;
-import com.codetracker.model.User;
+import com.codetracker.entity.User;
 import com.codetracker.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,17 +30,17 @@ import java.time.LocalDateTime;
 public class AuthController {
 
     private final UserService userService;
-    private final JwtUtils jwtUtils;
+    private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
 
     @Autowired
     public AuthController(UserService userService,
-                          JwtUtils jwtUtils,
+                          JwtService jwtService,
                           AuthenticationManager authenticationManager,
                           PasswordEncoder passwordEncoder) {
         this.userService = userService;
-        this.jwtUtils = jwtUtils;
+        this.jwtService = jwtService;
         this.authenticationManager = authenticationManager;
         this.passwordEncoder = passwordEncoder;
     }
@@ -66,7 +66,7 @@ public class AuthController {
                 .build();
 
         User savedUser = userService.save(user);
-        String token = jwtUtils.generateToken(savedUser.getUsername());
+        String token = jwtService.generateToken(savedUser);
 
         AuthResponse response = AuthResponse.builder()
                 .token(token)
@@ -86,7 +86,7 @@ public class AuthController {
                     new UsernamePasswordAuthenticationToken(user.getUsername(), request.getPassword())
             );
 
-            String token = jwtUtils.generateToken(user.getUsername());
+            String token = jwtService.generateToken(user);
 
             AuthResponse response = AuthResponse.builder()
                     .token(token)

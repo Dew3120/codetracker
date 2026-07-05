@@ -1,4 +1,4 @@
-package com.codetracker.model;
+package com.codetracker.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

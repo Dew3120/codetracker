@@ -1,6 +1,6 @@
 package com.codetracker.repository;
 
-import com.codetracker.model.Topic;
+import com.codetracker.entity.Topic;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

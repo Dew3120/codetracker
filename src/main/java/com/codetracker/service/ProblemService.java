@@ -1,7 +1,7 @@
 package com.codetracker.service;
 
-import com.codetracker.model.Problem;
-import com.codetracker.repository.ProblemRepository;
+import com.codetracker.entity.ProblemSolved;
+import com.codetracker.repository.ProblemSolvedRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -13,17 +13,17 @@ import java.util.stream.Collectors;
 @Service
 public class ProblemService {
 
-    private final ProblemRepository problemRepository;
+    private final ProblemSolvedRepository problemRepository;
 
-    public ProblemService(ProblemRepository problemRepository) {
+    public ProblemService(ProblemSolvedRepository problemRepository) {
         this.problemRepository = problemRepository;
     }
 
-    public List<Problem> getAllProblemsByUserId(Long userId) {
+    public List<ProblemSolved> getAllProblemsByUserId(Long userId) {
         return problemRepository.findAllByUserId(userId);
     }
 
-    public Problem save(Problem problem) {
+    public ProblemSolved save(ProblemSolved problem) {
         return problemRepository.save(problem);
     }
 
@@ -31,13 +31,13 @@ public class ProblemService {
         problemRepository.deleteById(id);
     }
 
-    public Optional<Problem> findById(Long id) {
+    public Optional<ProblemSolved> findById(Long id) {
         return problemRepository.findById(id);
     }
 
     public Map<String, Object> getProblemsPaged(Long userId, int page, int size,
                                                 String platform, String difficulty, Boolean isSolved) {
-        List<Problem> filtered = problemRepository.findAllByUserId(userId).stream()
+        List<ProblemSolved> filtered = problemRepository.findAllByUserId(userId).stream()
                 .filter(p -> platform == null || platform.equalsIgnoreCase(p.getPlatform()))
                 .filter(p -> difficulty == null || (p.getDifficulty() != null && difficulty.equalsIgnoreCase(p.getDifficulty())))
                 .filter(p -> isSolved == null || isSolved.equals(p.getIsSolved()))
@@ -49,7 +49,7 @@ public class ProblemService {
         int totalPages = (int) Math.ceil((double) total / safeSize);
         int from = Math.min(safePage * safeSize, total);
         int to = Math.min(from + safeSize, total);
-        List<Problem> content = filtered.subList(from, to);
+        List<ProblemSolved> content = filtered.subList(from, to);
 
         Map<String, Object> response = new HashMap<>();
         response.put("content", content);
@@ -61,7 +61,7 @@ public class ProblemService {
     }
 
     public Map<String, Object> getStats(Long userId) {
-        List<Problem> problems = problemRepository.findAllByUserId(userId);
+        List<ProblemSolved> problems = problemRepository.findAllByUserId(userId);
         int totalAttempted = problems.size();
         int totalSolved = 0;
         int totalMinutes = 0;
@@ -73,7 +73,7 @@ public class ProblemService {
         byDifficulty.put("HARD", new int[2]);
         Map<String, int[]> byPlatform = new HashMap<>();
 
-        for (Problem p : problems) {
+        for (ProblemSolved p : problems) {
             boolean solved = Boolean.TRUE.equals(p.getIsSolved());
             if (solved) totalSolved++;
             if (p.getTimeTakenMinutes() != null) { totalMinutes += p.getTimeTakenMinutes(); withTime++; }

@@ -1,4 +1,4 @@
-package com.codetracker.model;
+package com.codetracker.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -35,11 +35,11 @@ public class CodingSession {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "topic_id")   // âœ… removed nullable = false (matches ON DELETE SET NULL)
+    @JoinColumn(name = "topic_id")   // Ã¢Å“â€¦ removed nullable = false (matches ON DELETE SET NULL)
     private Topic topic;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "language_id") // âœ… removed nullable = false
+    @JoinColumn(name = "language_id") // Ã¢Å“â€¦ removed nullable = false
     private ProgrammingLanguage language;
 
     @Column(name = "session_date", nullable = false)

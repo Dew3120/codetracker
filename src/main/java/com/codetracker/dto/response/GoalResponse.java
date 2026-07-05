@@ -1,6 +1,6 @@
 package com.codetracker.dto.response;
 
-import com.codetracker.model.DailyGoal;
+import com.codetracker.entity.DailyGoal;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import com.fasterxml.jackson.annotation.JsonInclude;
