@@ -1,8 +1,10 @@
-# CodeTracker
+﻿# CodeTracker
 
 CodeTracker is a personal coding activity tracker: a full-stack application for logging coding sessions, setting daily goals, tracking solved programming problems, viewing reports, and earning achievement badges.
 
 ## Tech Stack
+
+### Backend
 
 - Java 17
 - Spring Boot 3.2.x
@@ -14,42 +16,42 @@ CodeTracker is a personal coding activity tracker: a full-stack application for 
 - Lombok
 - Jakarta Validation
 - Springdoc OpenAPI / Swagger UI
-- React.js frontend planned for the next project phase
 
-## Current Backend Scope
+### Frontend
+
+- React.js
+- JavaScript
+- React Router
+- Axios
+- Chart.js / react-chartjs-2
+- React Icons
+- React Datepicker
+- React Hot Toast
+- Plain CSS
+
+## Project Structure
+
+```text
+codetracker/
+├── pom.xml
+├── src/
+├── codetracker-frontend/
+│   ├── package.json
+│   ├── public/
+│   └── src/
+├── README.md
+└── docs/
+```
+
+The Spring Boot backend currently lives at the repository root. The React frontend lives in `codetracker-frontend/`.
+
+## Current Scope
 
 The backend follows the CodeTracker blueprint with REST API layers for authentication, users, coding sessions, goals, problems, reports, achievements, topics, and programming languages.
 
-## Project Setup
+The frontend Chapter 12 UI includes pages for login, registration, dashboard, coding sessions, goals, problems, reports, achievements, and profile.
 
-Spring Initializr settings used by the blueprint:
-
-- Project: Maven
-- Language: Java
-- Spring Boot: 3.2.x
-- Group: com.codetracker
-- Artifact: codetracker
-- Name: CodeTracker
-- Description: Personal coding activity tracker
-- Package: com.codetracker
-- Packaging: Jar
-- Java: 17
-
-## Required Dependencies
-
-The backend uses these dependencies from the blueprint:
-
-- Spring Web
-- Spring Data JPA
-- MySQL Driver
-- Spring Security
-- Lombok
-- Validation
-- Spring Boot DevTools
-- JJWT API, implementation, and Jackson support
-- Springdoc OpenAPI Swagger UI
-
-## Local Configuration
+## Backend Setup
 
 Create the database before running the app:
 
@@ -59,26 +61,43 @@ CREATE DATABASE codetracker_db;
 
 The local application config lives in `src/main/resources/application.properties` and is ignored by Git. Use `src/main/resources/application.properties.example` as the shareable template.
 
-Expected local backend URL:
+Expected backend URL:
 
 ```text
 http://localhost:8080
 ```
 
-## Verification Commands
-
-Use Maven to compile and run tests:
+Run backend tests:
 
 ```powershell
-mvn test
+.\mvnw.cmd test
 ```
 
-If Maven is not on PATH, use your installed Maven path or configure PATH first.
+## Frontend Setup
 
-Check the database tables:
+Install frontend dependencies from inside the frontend folder:
 
 ```powershell
-mysql -uroot -p -D codetracker_db -e "SHOW TABLES;"
+cd codetracker-frontend
+npm ci
+```
+
+Run the frontend development server:
+
+```powershell
+npm start
+```
+
+Expected frontend URL:
+
+```text
+http://localhost:3000
+```
+
+Build the frontend:
+
+```powershell
+npm run build
 ```
 
 ## Git Security Note

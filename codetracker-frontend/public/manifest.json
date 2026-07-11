@@ -1,0 +1,15 @@
+﻿{
+  "short_name": "CodeTracker",
+  "name": "CodeTracker - Coding Progress Tracker",
+  "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#10243b",
+  "background_color": "#f4f7fb"
+}
