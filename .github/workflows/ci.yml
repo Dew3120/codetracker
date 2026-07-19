@@ -1,0 +1,46 @@
+name: CodeTracker CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root123
+          MYSQL_DATABASE: codetracker_db_test
+        ports:
+          - "3306:3306"
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot123"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: temurin
+          cache: maven
+
+      - name: Run backend verification
+        run: mvn -B clean verify
+        env:
+          SPRING_DATASOURCE_URL: jdbc:mysql://localhost:3306/codetracker_db_test?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+          SPRING_DATASOURCE_USERNAME: root
+          SPRING_DATASOURCE_PASSWORD: root123
+          SPRING_JPA_HIBERNATE_DDL_AUTO: update
+          SPRING_JPA_SHOW_SQL: false
+          SPRING_SQL_INIT_MODE: always
+          SPRING_JPA_DEFER_DATASOURCE_INITIALIZATION: true
+          APP_JWT_SECRET: ciSecretKeyForJWTTokenGenerationMustBeAtLeast256BitsLong123456
