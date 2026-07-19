@@ -623,3 +623,21 @@ body {
     opacity: 0.95;
   }
 }
+
+/* CHAPTER 13 AUTH STATES */
+.auth-alert {
+  padding: 12px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 14px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.auth-submit:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.2);
+  opacity: 0.68;
+  transform: none;
+}

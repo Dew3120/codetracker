@@ -1,34 +1,168 @@
-import { FiCheckCircle, FiCode, FiEdit3, FiExternalLink, FiPlus } from "react-icons/fi";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { FiCheckCircle, FiCode, FiEdit3, FiExternalLink, FiPlus, FiTrash2 } from "react-icons/fi";
+import { getApiError } from "../api/apiClient";
+import { problemsApi } from "../api/problemsApi";
 import DashboardLayout from "../components/DashboardLayout";
-import { problems } from "../data/mockData";
+import { displayDate, minutesToDurationLabel, todayIsoDate } from "../utils/formatters";
+
+const initialProblemForm = {
+  problemName: "",
+  platform: "LeetCode",
+  difficulty: "MEDIUM",
+  timeTakenMinutes: "30",
+  solvedDate: todayIsoDate(),
+  problemUrl: "",
+  notes: "",
+};
 
 export default function ProblemsPage() {
+  const [form, setForm] = useState(initialProblemForm);
+  const [problems, setProblems] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [difficultyFilter, setDifficultyFilter] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
+
+  const loadProblems = useCallback(async (filter = difficultyFilter) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const params = { page: 0, size: 20 };
+      if (filter) {
+        params.difficulty = filter;
+      }
+
+      const [problemPage, problemStats] = await Promise.all([
+        problemsApi.getProblems(params),
+        problemsApi.getStats(),
+      ]);
+      setProblems(problemPage?.content || []);
+      setStats(problemStats);
+    } catch (apiError) {
+      setError(getApiError(apiError));
+    } finally {
+      setLoading(false);
+    }
+  }, [difficultyFilter]);
+
+  useEffect(() => {
+    loadProblems(difficultyFilter);
+  }, [difficultyFilter, loadProblems]);
+
+  const averageTime = useMemo(() => {
+    const solvedWithTime = problems.filter((problem) => problem.isSolved && problem.timeTakenMinutes);
+    if (!solvedWithTime.length) {
+      return 0;
+    }
+
+    return Math.round(solvedWithTime.reduce((total, problem) => total + problem.timeTakenMinutes, 0) / solvedWithTime.length);
+  }, [problems]);
+
+  const handleChange = (event) => {
+    setForm({ ...form, [event.target.name]: event.target.value });
+  };
+
+  const resetForm = () => {
+    setForm(initialProblemForm);
+    setEditId(null);
+  };
+
+  const buildPayload = (isSolved) => ({
+    problemName: form.problemName.trim(),
+    platform: form.platform.trim(),
+    difficulty: form.difficulty,
+    timeTakenMinutes: Number(form.timeTakenMinutes) || null,
+    solvedDate: form.solvedDate,
+    problemUrl: form.problemUrl.trim(),
+    notes: form.notes.trim(),
+    isSolved,
+  });
+
+  const handleSubmit = async (event, isSolved = true) => {
+    event.preventDefault();
+    setSaving(true);
+    setError("");
+    setMessage("");
+
+    try {
+      if (editId) {
+        await problemsApi.updateProblem(editId, buildPayload(isSolved));
+        setMessage("Problem updated successfully.");
+      } else {
+        await problemsApi.createProblem(buildPayload(isSolved));
+        setMessage(isSolved ? "Solved problem saved." : "Problem attempt saved.");
+      }
+
+      resetForm();
+      await loadProblems();
+    } catch (apiError) {
+      setError(getApiError(apiError));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleEdit = (problem) => {
+    setEditId(problem.id);
+    setForm({
+      problemName: problem.problemName || "",
+      platform: problem.platform || "LeetCode",
+      difficulty: problem.difficulty || "MEDIUM",
+      timeTakenMinutes: String(problem.timeTakenMinutes || ""),
+      solvedDate: problem.solvedDate || todayIsoDate(),
+      problemUrl: problem.problemUrl || "",
+      notes: problem.notes || "",
+    });
+    setMessage("Editing selected problem.");
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Delete this problem record?")) {
+      return;
+    }
+
+    try {
+      await problemsApi.deleteProblem(id);
+      setMessage("Problem deleted successfully.");
+      await loadProblems();
+    } catch (apiError) {
+      setError(getApiError(apiError));
+    }
+  };
+
   return (
     <DashboardLayout
       title="Problems"
       subtitle="Log and analyze problem-solving progress across coding platforms."
-      action={<button className="primary-button" type="button"><FiPlus /> Log Problem</button>}
+      action={<button className="primary-button" type="button" onClick={resetForm}><FiPlus /> Log Problem</button>}
     >
+      {error && <div className="form-alert">{error}</div>}
+      {message && <div className="form-alert success">{message}</div>}
+
       <section className="grid-4">
-        <ProblemStat label="Total Problems" value="142" />
-        <ProblemStat label="Solved" value="118" />
-        <ProblemStat label="Success Rate" value="83%" />
-        <ProblemStat label="Avg Time" value="34m" />
+        <ProblemStat label="Total Problems" value={stats?.totalAttempted || 0} />
+        <ProblemStat label="Solved" value={stats?.totalSolved || 0} />
+        <ProblemStat label="Success Rate" value={`${stats?.successRate || 0}%`} />
+        <ProblemStat label="Avg Time" value={minutesToDurationLabel(averageTime)} />
       </section>
 
       <section className="form-panel" style={{ marginTop: 16 }}>
         <div className="section-title">
-          <h3>Log New Problem</h3>
+          <h3>{editId ? "Edit Problem" : "Log New Problem"}</h3>
           <FiCode />
         </div>
-        <form className="form-grid">
+        <form className="form-grid" onSubmit={(event) => handleSubmit(event, true)}>
           <div className="form-field">
             <label>Problem Name</label>
-            <input placeholder="Two Sum" />
+            <input name="problemName" value={form.problemName} onChange={handleChange} placeholder="Two Sum" required />
           </div>
           <div className="form-field">
             <label>Platform</label>
-            <select defaultValue="LeetCode">
+            <select name="platform" value={form.platform} onChange={handleChange}>
               <option>LeetCode</option>
               <option>HackerRank</option>
               <option>Codeforces</option>
@@ -37,31 +171,32 @@ export default function ProblemsPage() {
           </div>
           <div className="form-field">
             <label>Difficulty</label>
-            <select defaultValue="Medium">
-              <option>Easy</option>
-              <option>Medium</option>
-              <option>Hard</option>
+            <select name="difficulty" value={form.difficulty} onChange={handleChange}>
+              <option value="EASY">Easy</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HARD">Hard</option>
             </select>
           </div>
           <div className="form-field">
             <label>Time Spent</label>
-            <input placeholder="45 minutes" />
+            <input name="timeTakenMinutes" type="number" min="0" value={form.timeTakenMinutes} onChange={handleChange} placeholder="45" />
           </div>
           <div className="form-field">
             <label>Solved Date</label>
-            <input type="date" defaultValue="2026-07-07" />
+            <input name="solvedDate" type="date" value={form.solvedDate} max={todayIsoDate()} onChange={handleChange} required />
           </div>
           <div className="form-field">
             <label>Problem URL</label>
-            <input placeholder="https://leetcode.com/problems/..." />
+            <input name="problemUrl" value={form.problemUrl} onChange={handleChange} placeholder="https://leetcode.com/problems/..." />
           </div>
           <div className="form-field full">
             <label>Notes</label>
-            <textarea placeholder="Approach, edge cases, and complexity notes." />
+            <textarea name="notes" value={form.notes} onChange={handleChange} placeholder="Approach, edge cases, and complexity notes." />
           </div>
           <div className="action-row full">
-            <button className="primary-button" type="button"><FiCheckCircle /> Save Problem</button>
-            <button className="secondary-button" type="button">Mark Attempted</button>
+            <button className="primary-button" type="submit" disabled={saving}><FiCheckCircle /> {saving ? "Saving..." : editId ? "Update Solved" : "Save Solved"}</button>
+            <button className="secondary-button" type="button" disabled={saving} onClick={(event) => handleSubmit(event, false)}>Mark Attempted</button>
+            {editId && <button className="ghost-button" type="button" onClick={resetForm}>Cancel Edit</button>}
           </div>
         </form>
       </section>
@@ -70,10 +205,11 @@ export default function ProblemsPage() {
         <div className="section-title" style={{ padding: "18px 18px 0" }}>
           <h3>Problem Log</h3>
           <div className="filter-row">
-            <span className="pill active">All</span>
-            <span className="pill">Easy</span>
-            <span className="pill">Medium</span>
-            <span className="pill">Hard</span>
+            {["", "EASY", "MEDIUM", "HARD"].map((difficulty) => (
+              <button key={difficulty || "ALL"} className={`pill ${difficultyFilter === difficulty ? "active" : ""}`} type="button" onClick={() => setDifficultyFilter(difficulty)}>
+                {difficulty || "All"}
+              </button>
+            ))}
           </div>
         </div>
         <table className="data-table">
@@ -89,22 +225,29 @@ export default function ProblemsPage() {
             </tr>
           </thead>
           <tbody>
-            {problems.map((problem) => (
-              <tr key={problem.id}>
-                <td>{problem.name}</td>
-                <td>{problem.platform}</td>
-                <td><DifficultyBadge difficulty={problem.difficulty} /></td>
-                <td>{problem.solvedDate}</td>
-                <td>{problem.timeSpent}</td>
-                <td><span className={`badge ${problem.solved ? "badge-success" : "badge-warning"}`}>{problem.solved ? "Solved" : "Attempted"}</span></td>
-                <td>
-                  <div className="action-row">
-                    <button className="icon-button" type="button" aria-label="Open problem"><FiExternalLink /></button>
-                    <button className="icon-button" type="button" aria-label="Edit problem"><FiEdit3 /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {loading ? (
+              <tr><td colSpan="7">Loading problems...</td></tr>
+            ) : problems.length > 0 ? (
+              problems.map((problem) => (
+                <tr key={problem.id}>
+                  <td>{problem.problemName}</td>
+                  <td>{problem.platform}</td>
+                  <td><DifficultyBadge difficulty={problem.difficulty} /></td>
+                  <td>{displayDate(problem.solvedDate)}</td>
+                  <td>{minutesToDurationLabel(problem.timeTakenMinutes)}</td>
+                  <td><span className={`badge ${problem.isSolved ? "badge-success" : "badge-warning"}`}>{problem.isSolved ? "Solved" : "Attempted"}</span></td>
+                  <td>
+                    <div className="action-row">
+                      <button className="icon-button" type="button" aria-label="Open problem" disabled={!problem.problemUrl} onClick={() => problem.problemUrl && window.open(problem.problemUrl, "_blank", "noreferrer")}><FiExternalLink /></button>
+                      <button className="icon-button" type="button" aria-label="Edit problem" onClick={() => handleEdit(problem)}><FiEdit3 /></button>
+                      <button className="icon-button danger-icon" type="button" aria-label="Delete problem" onClick={() => handleDelete(problem.id)}><FiTrash2 /></button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr><td colSpan="7">No problem records yet.</td></tr>
+            )}
           </tbody>
         </table>
       </section>
@@ -117,7 +260,7 @@ function ProblemStat({ label, value }) {
     <article className="stat-card">
       <div className="stat-top">
         <div className="stat-icon"><FiCode /></div>
-        <span className="trend-up">Updated</span>
+        <span className="trend-up">Live</span>
       </div>
       <p>{label}</p>
       <strong>{value}</strong>
@@ -126,6 +269,7 @@ function ProblemStat({ label, value }) {
 }
 
 function DifficultyBadge({ difficulty }) {
-  const className = difficulty === "Hard" ? "badge-danger" : difficulty === "Medium" ? "badge-warning" : "badge-success";
-  return <span className={`badge ${className}`}>{difficulty}</span>;
+  const normalized = difficulty?.toUpperCase();
+  const className = normalized === "HARD" ? "badge-danger" : normalized === "MEDIUM" ? "badge-warning" : "badge-success";
+  return <span className={`badge ${className}`}>{normalized || "EASY"}</span>;
 }

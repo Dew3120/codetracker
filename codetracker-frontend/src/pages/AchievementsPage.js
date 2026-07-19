@@ -1,6 +1,9 @@
-import { FiAward, FiClock, FiLock, FiSave, FiTarget, FiZap } from "react-icons/fi";
+import { useEffect, useMemo, useState } from "react";
+import { FiAward, FiClock, FiLock, FiTarget, FiZap } from "react-icons/fi";
+import { achievementsApi } from "../api/achievementsApi";
+import { getApiError } from "../api/apiClient";
 import DashboardLayout from "../components/DashboardLayout";
-import { achievements } from "../data/mockData";
+import { useAuth } from "../context/AuthContext";
 
 const iconMap = {
   clock: FiClock,
@@ -9,56 +12,93 @@ const iconMap = {
   zap: FiZap,
 };
 
+function displayName(user) {
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
+  return fullName || user?.username || "Developer";
+}
+
 export default function AchievementsPage() {
+  const { user } = useAuth();
+  const [achievements, setAchievements] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadAchievements() {
+      try {
+        const response = await achievementsApi.getAchievements();
+        if (active) {
+          setAchievements(response?.achievements || []);
+        }
+      } catch (apiError) {
+        if (active) {
+          setError(getApiError(apiError));
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadAchievements();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const earnedCount = useMemo(
+    () => achievements.filter((achievement) => achievement.earned).length,
+    [achievements]
+  );
+
+  const nextAchievement = achievements.find((achievement) => !achievement.earned);
+  const name = displayName(user);
+
   return (
     <DashboardLayout
       title="Achievements"
       subtitle="Turn consistent learning into visible milestones for your portfolio."
       action={<button className="primary-button" type="button"><FiAward /> View Badges</button>}
     >
+      {error && <div className="form-alert">{error}</div>}
+
       <section className="content-card profile-hero">
-        <div className="profile-avatar">D</div>
+        <div className="profile-avatar">{name.charAt(0).toUpperCase()}</div>
         <div>
           <p className="section-kicker">Student Developer</p>
-          <h3 style={{ margin: 0, color: "#10243b", fontSize: 24 }}>Dev Student</h3>
-          <p>Second-year SE student building CodeTracker as a full-stack portfolio project.</p>
+          <h3 style={{ margin: 0, color: "#10243b", fontSize: 24 }}>{name}</h3>
+          <p>Achievements are awarded by the backend when your sessions, goals, and problems reach each milestone.</p>
         </div>
-        <span className="badge badge-success">2 unlocked</span>
+        <span className="badge badge-success">{earnedCount} unlocked</span>
       </section>
 
       <section className="achievement-grid" style={{ marginTop: 16 }}>
-        {achievements.map((achievement) => (
-          <AchievementCard key={achievement.id} achievement={achievement} />
-        ))}
+        {loading ? (
+          <article className="achievement-card"><p>Loading achievements...</p></article>
+        ) : achievements.length > 0 ? (
+          achievements.map((achievement) => (
+            <AchievementCard key={achievement.id} achievement={achievement} />
+          ))
+        ) : (
+          <article className="achievement-card"><p>No achievements found yet.</p></article>
+        )}
       </section>
 
       <section className="grid-2" style={{ marginTop: 16 }}>
-        <div className="form-panel">
+        <div className="content-card">
           <div className="section-title">
-            <h3>Profile Preferences</h3>
-            <FiSave />
+            <h3>Achievement Summary</h3>
+            <FiAward />
           </div>
-          <form className="form-grid">
-            <div className="form-field">
-              <label>Daily Coding Goal</label>
-              <input type="number" defaultValue="120" />
-            </div>
-            <div className="form-field">
-              <label>Timezone</label>
-              <select defaultValue="Asia/Colombo">
-                <option>Asia/Colombo</option>
-                <option>UTC</option>
-                <option>Asia/Singapore</option>
-              </select>
-            </div>
-            <div className="form-field full">
-              <label>Portfolio Note</label>
-              <textarea defaultValue="Building CodeTracker with Spring Boot, MySQL, JWT, REST APIs, and React." />
-            </div>
-            <div className="action-row full">
-              <button className="primary-button" type="button"><FiSave /> Save Changes</button>
-            </div>
-          </form>
+          <strong style={{ display: "block", color: "#10243b", fontSize: 30 }}>{earnedCount} / {achievements.length}</strong>
+          <p>Earned badges are calculated from real backend achievement status.</p>
+          <div className="goal-meter">
+            <span style={{ width: `${achievements.length ? (earnedCount / achievements.length) * 100 : 0}%` }} />
+          </div>
         </div>
 
         <div className="content-card">
@@ -66,10 +106,10 @@ export default function AchievementsPage() {
             <h3>Next Unlock</h3>
             <FiLock />
           </div>
-          <strong style={{ display: "block", color: "#10243b", fontSize: 28 }}>Seven Day Streak</strong>
-          <p>One more consistent coding day unlocks the streak badge.</p>
+          <strong style={{ display: "block", color: "#10243b", fontSize: 28 }}>{nextAchievement?.name || "All caught up"}</strong>
+          <p>{nextAchievement?.description || "Keep logging sessions, goals, and problems to maintain your record."}</p>
           <div className="goal-meter">
-            <span style={{ width: "71%" }} />
+            <span style={{ width: nextAchievement ? "40%" : "100%" }} />
           </div>
         </div>
       </section>
@@ -81,17 +121,17 @@ function AchievementCard({ achievement }) {
   const Icon = iconMap[achievement.icon] || FiAward;
 
   return (
-    <article className={`achievement-card ${achievement.unlocked ? "" : "locked"}`}>
+    <article className={`achievement-card ${achievement.earned ? "" : "locked"}`}>
       <div className="achievement-icon">
         <Icon />
       </div>
-      <span className={`badge ${achievement.unlocked ? "badge-success" : "badge-neutral"}`}>
-        {achievement.unlocked ? "Unlocked" : "Locked"}
+      <span className={`badge ${achievement.earned ? "badge-success" : "badge-neutral"}`}>
+        {achievement.earned ? "Unlocked" : "Locked"}
       </span>
-      <h3>{achievement.title}</h3>
+      <h3>{achievement.name}</h3>
       <p>{achievement.description}</p>
       <div className="goal-meter">
-        <span style={{ width: `${achievement.progress}%` }} />
+        <span style={{ width: achievement.earned ? "100%" : "35%" }} />
       </div>
     </article>
   );

@@ -728,3 +728,167 @@ textarea {
     overflow-x: auto;
   }
 }
+
+/* CHAPTER 13 API STATES */
+button:disabled,
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.loading-screen {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #f4f7fb;
+  color: #10243b;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.loading-overlay {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid #d7e0eb;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #526071;
+  font-weight: 800;
+}
+
+.form-alert {
+  margin-bottom: 16px;
+  padding: 13px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.form-alert.success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.empty-text {
+  margin: 0;
+  color: #64748b;
+  font-weight: 750;
+}
+
+.danger-icon {
+  color: #dc2626;
+}
+
+.compact-input {
+  min-height: 34px;
+  border: 1px solid #d7e0eb;
+  border-radius: 8px;
+  padding: 0 10px;
+  color: #344256;
+  font-weight: 800;
+}
+
+.topbar-profile-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.progress-ring {
+  background: conic-gradient(#14b8a6 0 var(--progress, 70%), #e6edf5 var(--progress, 70%) 100%);
+}
+
+@media (max-width: 840px) {
+  .mobile-nav {
+    grid-template-columns: repeat(7, 1fr);
+  }
+}
+/* CHAPTER 13 STRICT BLUEPRINT UI */
+.form-mode-row {
+  margin-bottom: 16px;
+}
+
+.timer-display {
+  grid-column: 1 / -1;
+  display: grid;
+  place-items: center;
+  min-height: 190px;
+  padding: 22px;
+  border: 1px solid #d7e0eb;
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, rgba(20, 184, 166, 0.08), rgba(37, 99, 235, 0.08)),
+    #f8fafc;
+}
+
+.timer-display span {
+  color: #10243b;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-size: 48px;
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.timer-display p {
+  margin: 10px 0 0;
+  color: #64748b;
+  font-weight: 800;
+}
+
+.streak-heatmap {
+  display: grid;
+  grid-template-columns: repeat(30, minmax(12px, 1fr));
+  gap: 6px;
+}
+
+.heat-day {
+  display: block;
+  aspect-ratio: 1;
+  min-width: 12px;
+  border-radius: 4px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.heat-empty {
+  background: #e8eef6;
+}
+
+.heat-missed {
+  background: #fecaca;
+}
+
+.heat-partial {
+  background: #bbf7d0;
+}
+
+.heat-completed {
+  background: #16a34a;
+}
+
+.heatmap-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.heatmap-legend .heat-day {
+  width: 14px;
+  min-width: 14px;
+}
+
+@media (max-width: 700px) {
+  .timer-display span {
+    font-size: 36px;
+  }
+
+  .streak-heatmap {
+    grid-template-columns: repeat(15, minmax(12px, 1fr));
+  }
+}

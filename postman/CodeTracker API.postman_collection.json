@@ -1,0 +1,184 @@
+{
+  "info": {
+    "name": "CodeTracker API",
+    "description": "Postman collection for CodeTracker Chapter 13. Set baseUrl to http://localhost:8080/api and paste the JWT token returned by login/register into the token variable.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080/api" },
+    { "key": "token", "value": "" },
+    { "key": "sessionId", "value": "1" },
+    { "key": "problemId", "value": "1" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"dev_student\",\n  \"email\": \"devstudent@example.com\",\n  \"password\": \"Pass1234\",\n  \"firstName\": \"Dev\",\n  \"lastName\": \"Student\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"devstudent@example.com\",\n  \"password\": \"Pass1234\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Current User",
+          "request": { "method": "GET", "url": "{{baseUrl}}/auth/me" }
+        }
+      ]
+    },
+    {
+      "name": "Sessions",
+      "item": [
+        {
+          "name": "Create Session",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"topicId\": 2,\n  \"languageId\": 1,\n  \"sessionDate\": \"2026-07-18\",\n  \"startTime\": \"09:00\",\n  \"endTime\": \"10:30\",\n  \"durationMinutes\": 90,\n  \"notes\": \"Spring Boot API work\",\n  \"isTimerSession\": false\n}"
+            },
+            "url": "{{baseUrl}}/sessions"
+          }
+        },
+        { "name": "List Sessions", "request": { "method": "GET", "url": "{{baseUrl}}/sessions?page=0&size=20&sort=sessionDate,desc" } },
+        { "name": "Today Sessions", "request": { "method": "GET", "url": "{{baseUrl}}/sessions/today" } },
+        { "name": "Get Session", "request": { "method": "GET", "url": "{{baseUrl}}/sessions/{{sessionId}}" } },
+        {
+          "name": "Update Session",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"topicId\": 7,\n  \"languageId\": 3,\n  \"sessionDate\": \"2026-07-18\",\n  \"durationMinutes\": 75,\n  \"notes\": \"Updated React session\",\n  \"isTimerSession\": false\n}"
+            },
+            "url": "{{baseUrl}}/sessions/{{sessionId}}"
+          }
+        },
+        { "name": "Delete Session", "request": { "method": "DELETE", "url": "{{baseUrl}}/sessions/{{sessionId}}" } },
+        { "name": "Sessions By Range", "request": { "method": "GET", "url": "{{baseUrl}}/sessions/range?start=2026-07-01&end=2026-07-31" } }
+      ]
+    },
+    {
+      "name": "Goals",
+      "item": [
+        {
+          "name": "Set Goal",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"goalDate\": \"2026-07-18\",\n  \"targetMinutes\": 120\n}"
+            },
+            "url": "{{baseUrl}}/goals"
+          }
+        },
+        { "name": "Today Goal", "request": { "method": "GET", "url": "{{baseUrl}}/goals/today" } },
+        { "name": "Streak", "request": { "method": "GET", "url": "{{baseUrl}}/goals/streak" } },
+        { "name": "Goal History", "request": { "method": "GET", "url": "{{baseUrl}}/goals/history" } }
+      ]
+    },
+    {
+      "name": "Problems",
+      "item": [
+        {
+          "name": "Create Problem",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"LeetCode\",\n  \"problemName\": \"Two Sum\",\n  \"problemUrl\": \"https://leetcode.com/problems/two-sum/\",\n  \"difficulty\": \"EASY\",\n  \"isSolved\": true,\n  \"timeTakenMinutes\": 18,\n  \"notes\": \"Hash map approach\",\n  \"solvedDate\": \"2026-07-18\"\n}"
+            },
+            "url": "{{baseUrl}}/problems"
+          }
+        },
+        { "name": "List Problems", "request": { "method": "GET", "url": "{{baseUrl}}/problems?page=0&size=20" } },
+        { "name": "Problem Stats", "request": { "method": "GET", "url": "{{baseUrl}}/problems/stats" } },
+        {
+          "name": "Update Problem",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"platform\": \"LeetCode\",\n  \"problemName\": \"Two Sum\",\n  \"difficulty\": \"EASY\",\n  \"isSolved\": true,\n  \"timeTakenMinutes\": 15,\n  \"solvedDate\": \"2026-07-18\"\n}"
+            },
+            "url": "{{baseUrl}}/problems/{{problemId}}"
+          }
+        },
+        { "name": "Delete Problem", "request": { "method": "DELETE", "url": "{{baseUrl}}/problems/{{problemId}}" } }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        { "name": "Weekly Report", "request": { "method": "GET", "url": "{{baseUrl}}/reports/weekly" } },
+        { "name": "Monthly Report", "request": { "method": "GET", "url": "{{baseUrl}}/reports/monthly?month=2026-07" } },
+        { "name": "Language Distribution", "request": { "method": "GET", "url": "{{baseUrl}}/reports/languages" } },
+        { "name": "Topic Breakdown", "request": { "method": "GET", "url": "{{baseUrl}}/reports/topics" } }
+      ]
+    },
+    {
+      "name": "Achievements",
+      "item": [
+        { "name": "List Achievements", "request": { "method": "GET", "url": "{{baseUrl}}/achievements" } }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Dev\",\n  \"lastName\": \"Student\",\n  \"bio\": \"Building CodeTracker\",\n  \"timezone\": \"Asia/Colombo\",\n  \"dailyGoalMinutes\": 120\n}"
+            },
+            "url": "{{baseUrl}}/users/profile"
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Pass1234\",\n  \"newPassword\": \"NewPass1234\"\n}"
+            },
+            "url": "{{baseUrl}}/users/password"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import {
   FiAward,
   FiBarChart2,
@@ -10,6 +10,7 @@ import {
   FiTarget,
   FiUser,
 } from "react-icons/fi";
+import { useAuth } from "../context/AuthContext";
 import "../styles/dashboard.css";
 
 const navItems = [
@@ -22,7 +23,22 @@ const navItems = [
   { label: "Profile", path: "/profile", icon: FiUser },
 ];
 
+function getDisplayName(user) {
+  const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim();
+  return fullName || user?.username || "Developer";
+}
+
 export default function DashboardLayout({ children, title, subtitle, action }) {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const displayName = getDisplayName(user);
+  const initial = displayName.charAt(0).toUpperCase();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <div className="app-shell">
       <aside className="app-sidebar">
@@ -48,9 +64,9 @@ export default function DashboardLayout({ children, title, subtitle, action }) {
         </nav>
 
         <div className="sidebar-card">
-          <p>Current streak</p>
-          <strong>6 days</strong>
-          <span>Keep the chain alive today</span>
+          <p>Signed in as</p>
+          <strong>{initial}</strong>
+          <span>{user?.email || "CodeTracker user"}</span>
         </div>
       </aside>
 
@@ -62,14 +78,14 @@ export default function DashboardLayout({ children, title, subtitle, action }) {
           </div>
 
           <NavLink className="topbar-user topbar-profile-link" to="/profile">
-            <div className="user-avatar">D</div>
+            <div className="user-avatar">{initial}</div>
             <div>
-              <strong>Dev Student</strong>
-              <span>Second Year SE</span>
+              <strong>{displayName}</strong>
+              <span>{user?.timezone || "Asia/Colombo"}</span>
             </div>
           </NavLink>
 
-          <button className="icon-button" type="button" aria-label="Logout">
+          <button className="icon-button" type="button" aria-label="Logout" onClick={handleLogout}>
             <FiLogOut />
           </button>
         </header>

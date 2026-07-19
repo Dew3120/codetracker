@@ -1,21 +1,39 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiArrowRight, FiBarChart2, FiClock, FiLock, FiTerminal, FiTrendingUp } from "react-icons/fi";
+import { getApiError } from "../api/apiClient";
+import { useAuth } from "../context/AuthContext";
 import forestBackground from "../assets/forest-auth.png";
 import "../styles/auth.css";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "tdg", password: "tdg" });
+  const location = useLocation();
+  const { login } = useAuth();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const handleChange = (event) => {
     setForm({ ...form, [event.target.name]: event.target.value });
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    console.log("Login payload:", form);
-    navigate("/dashboard");
+    setError("");
+    setSubmitting(true);
+
+    try {
+      await login({
+        email: form.email.trim(),
+        password: form.password,
+      });
+      navigate(location.state?.from?.pathname || "/dashboard", { replace: true });
+    } catch (apiError) {
+      setError(getApiError(apiError));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -44,15 +62,15 @@ export default function LoginPage() {
           <div className="showcase-stats">
             <div>
               <FiClock />
-              <span>10.5 hours this week</span>
+              <span>Daily coding sessions</span>
             </div>
             <div>
               <FiTrendingUp />
-              <span>6 day active streak</span>
+              <span>Goal and streak tracking</span>
             </div>
             <div>
               <FiBarChart2 />
-              <span>64 problems tracked</span>
+              <span>Real reports from your API</span>
             </div>
           </div>
         </aside>
@@ -68,6 +86,8 @@ export default function LoginPage() {
           </div>
 
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
+            {error && <div className="auth-alert">{error}</div>}
+
             <label>
               <span>Email Address</span>
               <input name="email" type="email" value={form.email} onChange={handleChange} placeholder="name@example.com" required />
@@ -78,14 +98,14 @@ export default function LoginPage() {
               <input name="password" type="password" value={form.password} onChange={handleChange} placeholder="Enter password" required />
             </label>
 
-            <button className="auth-submit" type="submit">
-              Login <FiArrowRight />
+            <button className="auth-submit" type="submit" disabled={submitting}>
+              {submitting ? "Signing in..." : "Login"} <FiArrowRight />
             </button>
           </form>
 
           <div className="auth-trust">
             <span><FiLock /> JWT secured</span>
-            <span><FiBarChart2 /> Progress dashboard</span>
+            <span><FiBarChart2 /> API connected</span>
           </div>
 
           <p className="auth-switch">

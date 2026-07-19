@@ -10,6 +10,8 @@ import {
   FiTerminal,
   FiTrendingUp,
 } from "react-icons/fi";
+import { getApiError } from "../api/apiClient";
+import { useAuth } from "../context/AuthContext";
 import forestBackground from "../assets/forest-auth.png";
 import "../styles/auth.css";
 
@@ -24,6 +26,7 @@ function getPasswordStrength(password) {
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
@@ -32,6 +35,8 @@ export default function RegisterPage() {
     password: "",
     confirmPassword: "",
   });
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   const strength = useMemo(() => getPasswordStrength(form.password), [form.password]);
   const passwordsMatch = form.confirmPassword && form.password === form.confirmPassword;
@@ -41,19 +46,36 @@ export default function RegisterPage() {
     setForm({ ...form, [event.target.name]: event.target.value });
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    setError("");
 
-    const payload = {
-      firstName: form.firstName,
-      lastName: form.lastName,
-      username: form.username,
-      email: form.email,
-      password: form.password,
-    };
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
 
-    console.log("Register payload:", payload);
-    navigate("/dashboard");
+    if (strength < 4) {
+      setError("Password must be at least 8 characters and include uppercase, lowercase, and a number.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      await register({
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        username: form.username.trim(),
+        email: form.email.trim(),
+        password: form.password,
+      });
+      navigate("/dashboard", { replace: true });
+    } catch (apiError) {
+      setError(getApiError(apiError));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -88,8 +110,8 @@ export default function RegisterPage() {
 
           <div className="showcase-card">
             <div className="showcase-card-header">
-              <span>This week</span>
-              <strong>10.5h</strong>
+              <span>Chapter 13</span>
+              <strong>API</strong>
             </div>
             <div className="mini-chart" aria-hidden="true">
               <span style={{ height: "38%" }} />
@@ -129,15 +151,17 @@ export default function RegisterPage() {
           </div>
 
           <form className="auth-form" onSubmit={handleSubmit}>
+            {error && <div className="auth-alert">{error}</div>}
+
             <div className="auth-grid">
               <label>
                 <span>First Name</span>
-                <input name="firstName" value={form.firstName} onChange={handleChange} placeholder="Linus" required />
+                <input name="firstName" value={form.firstName} onChange={handleChange} placeholder="Linus" />
               </label>
 
               <label>
                 <span>Last Name</span>
-                <input name="lastName" value={form.lastName} onChange={handleChange} placeholder="Torvalds" required />
+                <input name="lastName" value={form.lastName} onChange={handleChange} placeholder="Torvalds" />
               </label>
             </div>
 
@@ -153,7 +177,7 @@ export default function RegisterPage() {
 
             <label>
               <span>Password</span>
-              <input name="password" type="password" value={form.password} onChange={handleChange} placeholder="Enter password" required />
+              <input name="password" type="password" value={form.password} onChange={handleChange} placeholder="At least 8 characters" required />
             </label>
 
             <div className="password-meter-wrap">
@@ -171,8 +195,8 @@ export default function RegisterPage() {
               </div>
             </label>
 
-            <button className="auth-submit" type="submit">
-              Create Account <FiArrowRight />
+            <button className="auth-submit" type="submit" disabled={submitting}>
+              {submitting ? "Creating account..." : "Create Account"} <FiArrowRight />
             </button>
           </form>
 
