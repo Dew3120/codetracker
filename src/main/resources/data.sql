@@ -1,3 +1,15 @@
+INSERT INTO users (username, email, password_hash, first_name, last_name, bio, timezone, daily_goal_minutes, is_active) VALUES
+('admin', 'admin@email.com', '$2a$10$NwUvZpGoB9sK7TojDDtaEOuXiIYcCpwhde9q9Xvd/4PldN1BfgYV2', 'Admin', 'User', 'Default local testing account for CodeTracker.', 'Asia/Colombo', 120, TRUE)
+ON DUPLICATE KEY UPDATE
+username = VALUES(username),
+email = VALUES(email),
+password_hash = VALUES(password_hash),
+first_name = VALUES(first_name),
+last_name = VALUES(last_name),
+bio = VALUES(bio),
+timezone = VALUES(timezone),
+daily_goal_minutes = VALUES(daily_goal_minutes),
+is_active = VALUES(is_active);
 INSERT INTO programming_languages (name, color_hex) VALUES
 ('Java', '#B07219'),
 ('Python', '#3572A5'),
