@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FiAward, FiClock, FiLock, FiTarget, FiZap } from "react-icons/fi";
 import { achievementsApi } from "../api/achievementsApi";
 import { getApiError } from "../api/apiClient";
@@ -22,6 +22,7 @@ export default function AchievementsPage() {
   const [achievements, setAchievements] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const badgesRef = useRef(null);
 
   useEffect(() => {
     let active = true;
@@ -58,11 +59,15 @@ export default function AchievementsPage() {
   const nextAchievement = achievements.find((achievement) => !achievement.earned);
   const name = displayName(user);
 
+  const handleViewBadges = () => {
+    badgesRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <DashboardLayout
       title="Achievements"
       subtitle="Turn consistent learning into visible milestones for your portfolio."
-      action={<button className="primary-button" type="button"><FiAward /> View Badges</button>}
+      action={<button className="primary-button" type="button" onClick={handleViewBadges}><FiAward /> View Badges</button>}
     >
       {error && <div className="form-alert">{error}</div>}
 
@@ -76,7 +81,7 @@ export default function AchievementsPage() {
         <span className="badge badge-success">{earnedCount} unlocked</span>
       </section>
 
-      <section className="achievement-grid" style={{ marginTop: 16 }}>
+      <section className="achievement-grid" style={{ marginTop: 16 }} ref={badgesRef}>
         {loading ? (
           <article className="achievement-card"><p>Loading achievements...</p></article>
         ) : achievements.length > 0 ? (
